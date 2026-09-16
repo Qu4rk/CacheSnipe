@@ -18,65 +18,67 @@
 
 ---
 
-## What CacheSnipe Does
+## Why I Built CacheSnipe
 
-CacheSnipe is an OpenCode plugin designed to solve a very specific, expensive problem: keeping the prompt prefix byte-identical across multi-turn agentic coding sessions so that DeepSeek bills nearly all input tokens at cache-read prices.
+I do almost all my agentic coding inside OpenCode. If you have spent any serious time running multi-turn coding sessions with DeepSeek models, you know how fast input token costs can creep up once your context crosses 30,000 to 100,000 tokens.
 
-DeepSeek provides massive discounts for prompt cache hits:
+DeepSeek actually offers unbelievable prompt-cache pricing:
 
 | Model | Uncached Input | Cache Read Input | Discount Factor |
 |---|---|---|---|
 | `deepseek-v4-flash` | $0.15 / 1M | $0.003 / 1M | **50x cheaper** |
 | `deepseek-v4-pro` (`deepseek/deepseek-v4-pro-0813`) | $0.435 / 1M | $0.003625 / 1M | **120x cheaper** |
 
-When an AI coding agent works through a codebase, context accumulates rapidly: project file listings, system prompts, skill instructions, tool results, and conversation history. Within 10 to 20 turns, context routinely exceeds 30,000 to 100,000 tokens.
+The catch is how DeepSeek KV caching works under the hood. DeepSeek caches prompts server-side in contiguous **128-token blocks** starting strictly from token 0. If a single character changes at token 40 (for instance, OpenCode updating the current date or pruning past tool results), every subsequent block misses the cache. Your warm session suddenly drops from a 98% discount down to 0%, and you get billed full cold rates on your entire 80k context.
 
-DeepSeek caches prompts server-side in contiguous **128-token blocks** starting from token 0. If your prompt drifts by even a single character at token 40 (for example, a dynamic date line updating at midnight, or OpenCode rewriting old tool outputs), every subsequent block misses the cache. You get charged the full cold input rate on the entire context.
+I got tired of watching my cache hit rates collapse mid-session and burning through API credits for no reason. So I built CacheSnipe.
 
-CacheSnipe intercepts OpenCode's prompt pipeline, freezes dynamic dates, detects and attributes block drift, guards against message history divergence, disables destructive tool pruning, and persists state across app restarts. The result: turns 2 and onward consistently achieve 90% to 99%+ cache hit rates with zero lost prefix tokens.
+CacheSnipe intercepts OpenCode's prompt pipeline, freezes dynamic dates, pins system blocks, disables destructive tool pruning, and keeps your prompt prefix byte-identical across turns and app restarts. The result: turns 2 and onward consistently hit 90% to 99%+ cache hit rates with zero lost prefix tokens.
 
 ---
 
 ## Real-World Proof
 
-Here is real-world proof from an active developer dashboard using CacheSnipe with official DeepSeek API keys:
+Here is what this looks like in my own daily workflow. This is a screenshot directly from my DeepSeek developer console after a heavy coding run using CacheSnipe with official DeepSeek API keys:
 
 <p align="center">
   <img src="assets/deepseek-cost-proof.png" alt="DeepSeek Dashboard Proof: 7.45M tokens for $0.19 across 159 requests" width="850" />
 </p>
 
 ```text
-Tokens Processed:  7,453,600 tokens
+Tokens Processed:   7,453,600 tokens
 Total API Requests: 159 requests
-Total Billed Cost: $0.19 USD
+Total Billed Cost:  $0.19 USD
 ```
 
-Processing nearly 7.5 million tokens on an advanced model for nineteen cents is only possible when the prompt prefix stays locked. In a live 32-turn coding session under `strictFreeze`, warm hit rates held steady at 96.1% with monotonic cache read growth from 16,384 up to 111,872 tokens and exactly 0 lost prefix tokens on every warm turn.
+Processing nearly 7.5 million tokens on an advanced reasoning model for nineteen cents is only possible when the prompt prefix stays locked.
+
+Without prefix locking, pushing 7.5 million input tokens through DeepSeek Pro would have cost over $3.20. With CacheSnipe locking the prefix, 96.1% of all warm turns hit the KV cache at $0.0036 per million tokens, with cache-read volume climbing monotonically from 16,384 up to 111,872 tokens and exactly 0 lost prefix tokens on every single turn.
 
 ---
 
-## Why OpenCode Breaks the Prefix (And How CacheSnipe Fixes It)
+## Why OpenCode Breaks the Prefix (And How I Fixed It)
 
-Without CacheSnipe, several standard OpenCode behaviors inadvertently break DeepSeek's 128-token cache alignment:
+When I started digging into why my cache hit rates were dropping to zero in OpenCode, I found four quiet culprits under the hood:
 
-1. **Dynamic Date Rollover in `<env>`**: OpenCode injects `Today's date: ...` into the system prompt on every request. At local midnight or when resuming an older session the next morning, the date line changes. Because this occurs at the very start of the prompt, the entire KV cache drops to 0% and your full context is re-uploaded at cold price.
-2. **Skill and MCP Drift**: Skills in `~/.config/opencode/skills`, `~/.agents/skills`, or project directories are scanned per request. If an MCP server connects late or a skill changes, the `<available_skills>` or `<mcp_instructions>` block shifts.
-3. **Destructive Tool Compaction (`compaction.prune`)**: OpenCode's default compaction can replace older tool outputs mid-history with `[Old tool result content cleared]`. This rewrites previous turns and invalidates the prefix chain.
-4. **App Restarts**: When the OpenCode Desktop app restarts, it rebuilds the `<env>` block. A slightly different environment string alters token 0 and busts the prefix.
+1. **Dynamic Date Rollover in `<env>`**: OpenCode injects `Today's date: ...` into the system prompt on every request. At local midnight or when resuming an older session the next morning, that date line changes. Because it sits right near the start of the prompt, the entire KV cache drops to 0% and your full context is re-billed at cold prices.
+2. **Skill and MCP Drift**: OpenCode scans skills on each turn. If an MCP server connects slightly late or a directory scan reorders tools, the `<available_skills>` block shifts and busts alignment.
+3. **Destructive Tool Compaction (`compaction.prune`)**: By default, OpenCode compaction can replace older tool outputs mid-history with `[Old tool result content cleared]`. That rewrites earlier turns and completely ruins the prefix chain.
+4. **Desktop App Restarts**: When you restart the OpenCode Desktop app, it rebuilds the `<env>` block. A tiny variation in environment strings alters token 0 and busts the prefix.
 
 <p align="center">
   <img src="assets/prefix-comparison.svg" alt="DeepSeek 128-Token Block Alignment Comparison" width="100%" />
 </p>
 
-### The Fix
+### How CacheSnipe Solves This
 
-CacheSnipe fixes this across five parts of the pipeline:
+CacheSnipe hooks into OpenCode across five layers of the request lifecycle:
 
-- **P0 Date Freeze**: Captures the date line upon first sighting, writes it to persistent session storage, and rewrites any future date changes back to the session-start date. Resuming a session days later keeps its original cache chain intact.
-- **P0b Block Hashing and Drift Attribution**: Generates SHA-256 hashes for `<env>`, `<available_skills>`, `<mcp_instructions>`, and `<available_references>`. If drift occurs, CacheSnipe pinpoints the exact block and the first differing line.
+- **P0 Date Freeze**: Captures the date line upon first sighting, writes it to persistent session storage on disk, and rewrites any future date changes back to the session-start date. When you resume a session days later, the original cache chain stays intact.
+- **P0b Block Hashing and Drift Attribution**: Computes SHA-256 hashes for `<env>`, `<available_skills>`, `<mcp_instructions>`, and `<available_references>`. If drift happens, CacheSnipe pinpoints the exact block and the first line that differed.
 - **P2 Prefix Guard**: Tracks the message history hash chain. It classifies requests into extensions (healthy), rewinds (`/undo` or retries, which remain valid prefixes), compactions, or genuine divergences.
 - **P3 Safe Compaction**: Enforces `"compaction": { "prune": false }` in OpenCode configuration and directs session compaction to `deepseek/deepseek-v4-flash` at temperature 0.
-- **P1 Telemetry and Reporting**: Records exact cache-read tokens, miss input, reasoning tokens, and dollar costs directly from assistant message events.
+- **P1 Live Telemetry and Reporting**: Records exact cache-read tokens, miss input, reasoning tokens, and dollar costs directly from assistant message events.
 
 <p align="center">
   <img src="assets/cache-flow.svg" alt="CacheSnipe Architecture and Hook Pipeline" width="100%" />
@@ -84,24 +86,24 @@ CacheSnipe fixes this across five parts of the pipeline:
 
 ---
 
-## Provenance and Architecture: Pi to OpenCode
+## Provenance: From Pi to OpenCode
 
-CacheSnipe is my own flavour and an architectural port of [`pi-deepseek-cache`](https://github.com/rohaquinlop/pi-deepseek-cache) by rohaquinlop. The original plugin was conceived specifically for the **Pi agent harness**. I ported and rebuilt it over to the **OpenCode harness**, specifically targeting the **OpenCode Desktop app** on macOS (as well as OpenCode CLI).
+Credit where credit is due: CacheSnipe is my own flavour and an architectural port of [`pi-deepseek-cache`](https://github.com/rohaquinlop/pi-deepseek-cache) originally created by **rohaquinlop** for the **Pi agent harness**.
 
-This port involved several fundamental design changes:
+When I switched over to using **OpenCode Desktop** on macOS as my primary daily driver, I really missed the aggressive prompt-cache optimization that rohaquinlop built for Pi. But OpenCode runs on a completely different architecture, so porting it required several major structural changes:
 
-- **Electron Node Runtime (No Bun)**: The original Pi extension relied on Bun runtime primitives (`Bun.$`). OpenCode Desktop runs plugins inside an Electron Node.js process where Bun is absent. CacheSnipe is compiled to standard JavaScript with zero external runtime dependencies, using only `node:*` built-ins.
-- **Persistent Date Freeze Across Resumes**: Pi only held the frozen date in memory for the active process. CacheSnipe writes the frozen date to disk inside the session record. When you resume a session hours or days later in OpenCode, the original date is re-applied and the prefix chain does not break.
+- **Electron Node Runtime (No Bun)**: The original Pi extension relied on Bun runtime primitives (`Bun.$`). OpenCode Desktop runs plugins inside an Electron Node.js process where Bun is absent. I rewrote the codebase in TypeScript to compile into clean standard JavaScript with zero external runtime dependencies, using only `node:*` built-ins.
+- **Persistent Date Freeze Across Days**: Pi held the frozen date in memory for the active process. In my workflow, I frequently close OpenCode and resume sessions the next morning. CacheSnipe writes the session record to disk, so resuming an older session re-applies its original date and keeps the server-side cache warm.
+- **`strictFreeze` Mode for Desktop Restarts**: A custom feature I created specifically for OpenCode Desktop. When enabled, CacheSnipe replays the exact session-start prompt blocks even if you restart the desktop app, completely eliminating restart-induced cache misses.
 - **Granular Block Hashing and Diffing**: OpenCode bundles skills, MCP tools, and environment variables into distinct XML blocks. CacheSnipe hashes each block independently and isolates the date line from general environment variables.
-- **`strictFreeze` Mode**: A unique feature in this port. When enabled, CacheSnipe replays the exact session-start prompt blocks even after the OpenCode desktop application restarts, completely eliminating restart-induced cache misses.
-- **Multi-Workspace Concurrency**: Developers often work across multiple OpenCode windows simultaneously. CacheSnipe utilizes atomic file writes and merge-on-read logic so independent workspaces sharing the stats directory converge safely without race conditions.
+- **Multi-Workspace Concurrency**: I often run multiple OpenCode windows side by side across different projects. CacheSnipe uses atomic file writes and merge-on-read logic so multiple windows sharing the stats directory converge safely without race conditions.
 - **Automatic History Healing**: Cleans trailing zero-usage placeholders and aborted requests from telemetry, keeping reports strictly aligned with actual billing events.
 
 ---
 
-## Supported Models and Tested Configuration
+## Supported Models and Official DeepSeek Keys
 
-CacheSnipe is tested **exclusively with official DeepSeek API keys** (`https://api.deepseek.com`).
+I tested and tuned CacheSnipe **exclusively with official DeepSeek API keys** (`https://api.deepseek.com`).
 
 Tested models include:
 - `deepseek-v4-flash` (compaction default, 50x cache discount)
@@ -109,9 +111,9 @@ Tested models include:
 
 ### Why Official DeepSeek Keys Matter
 
-Third-party aggregators and free routing tiers (such as free OpenRouter proxies or dynamic endpoints) frequently route requests to different upstream servers between turns. Each upstream worker maintains its own independent KV cache namespace. If your second turn hits a different server, your cache is wiped out server-side even if your prompt prefix is 100% byte-identical.
+In my testing, third-party aggregators and free routing proxies often balance requests across different upstream servers or GPU clusters between turns. Each upstream worker maintains its own independent KV cache namespace. If your second turn hits a different server, your cache is wiped out server-side even if your prompt prefix is 100% byte-identical.
 
-Official DeepSeek API keys maintain a dedicated, persistent cache namespace tied to your account. Empirical testing confirms that prefixes persist reliably for hours across sessions.
+Official DeepSeek API keys maintain a dedicated, persistent cache namespace tied to your account. In my testing, prefixes stay warm on DeepSeek servers for hours across sessions.
 
 ---
 
@@ -145,14 +147,14 @@ this session  ses_f55dc6a2  deepseek/deepseek-v4-pro-0813
   blocks                env=389550df skills=4339ab3c date=9336994a
 ```
 
-Key indicators:
+Key indicators I check:
 - **Prefix Lost**: The primary health metric. Measures `max(0, cache.read(t-1) - cache.read(t))`. In a healthy session, this is always 0.
 - **Hit Rate**: Warm hit percentage. The remaining percentage reflects each turn's new tool output and user message, which must be uploaded uncached by definition.
-- **Break Causes**: If a break occurred, CacheSnipe prints the offending block and the first differing line.
+- **Break Causes**: If a break occurred, CacheSnipe prints the offending block and the first differing line so you can fix it immediately.
 
 ### 2. `/cache-graph`
 
-Injects `graph.txt`, rendering a clean ASCII trend chart of the current session's hit rates:
+Injects `graph.txt`, rendering a clean ASCII trend chart of the current session hit rates:
 
 ```text
 CacheSnipe: Hit Rate Trend (ses_f55dc6a2)
@@ -182,13 +184,14 @@ Session JSON records are moved to a timestamped backup directory (`~/.local/shar
 
 - Node.js version 22 or higher (`node -v`)
 - OpenCode Desktop or OpenCode CLI installed
-- DeepSeek API key configured in OpenCode
+- Official DeepSeek API key configured in OpenCode
 
 ### Quick Install
 
-Run the automated installer from the repository root:
+Clone the repository and run the automated installer:
 
 ```bash
+git clone https://github.com/Qu4rk/CacheSnipe.git
 cd CacheSnipe
 ./install.sh
 ```
@@ -230,18 +233,18 @@ If you prefer to configure OpenCode manually, add the following to `~/.config/op
 }
 ```
 
-After modifying the configuration, restart the OpenCode Desktop app so the server loads the plugin.
+After modifying the configuration, restart OpenCode Desktop so the server loads the plugin.
 
 ---
 
 ## Automatic Setup for Your Own Agents
- 
+
 OpenCode plugins operate at the server level. This means **all agents and subagents inherit CacheSnipe automatically** without needing per-agent plugin declarations.
- 
+
 ### 1. Primary and Delegated Subagents
- 
+
 When OpenCode spawns background subagents or parallel workers to explore files, run tests, or execute terminal commands, those child sessions pass through CacheSnipe's hook pipeline automatically. Their prompt prefixes are guarded, their tool runs are tracked, and their token savings register in your aggregate stats.
- 
+
 ### 2. Custom Agents in `opencode.json`
 
 If you declare named agents directly in `~/.config/opencode/opencode.json` (or `opencode.jsonc`), declare them normally:
@@ -264,9 +267,9 @@ If you declare named agents directly in `~/.config/opencode/opencode.json` (or `
 ```
 
 ### 3. Standalone Agent YAML Definitions
- 
+
 When defining custom agents in `~/.config/opencode/agents/` (or project-level `.opencode/agents/`), simply specify a DeepSeek model:
- 
+
 ```yaml
 # ~/.config/opencode/agents/code-reviewer.yaml
 name: code-reviewer
@@ -277,7 +280,7 @@ system_prompt: |
   You are an expert code reviewer. Analyze the provided diff for correctness,
   performance regressions, and security vulnerabilities.
 ```
- 
+
 Rules for custom agent authors:
 - **Pin DeepSeek Models**: Declare `deepseek/deepseek-v4-flash` or `deepseek/deepseek-v4-pro-0813`. CacheSnipe detects DeepSeek model identifiers and engages automatically. Non-DeepSeek agents pass through completely untouched.
 - **Keep System Prompts Deterministic**: Avoid embedding dynamic runtime expressions (such as timestamps, random seeds, or process IDs) into custom agent system prompt templates. CacheSnipe freezes OpenCode's built-in date tags, but keeping custom agent instructions static ensures every turn aligns cleanly with the KV cache.
@@ -363,4 +366,4 @@ A few important technical details to know upfront:
 
 - **License**: MIT License.
 - **Original Work**: Ported from [`pi-deepseek-cache`](https://github.com/rohaquinlop/pi-deepseek-cache) created by **rohaquinlop** for the Pi agent harness.
-- **Port Author**: Maintained by **Elias Liasides** ([Qu4rk](https://github.com/Qu4rk)).
+- **Port Author**: Built and maintained by **Elias Liasides** ([Qu4rk](https://github.com/Qu4rk)) for the OpenCode community.

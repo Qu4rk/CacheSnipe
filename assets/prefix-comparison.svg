@@ -1,93 +1,183 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 580" width="100%" height="100%" role="img" aria-labelledby="compTitle compDesc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="100%" height="100%" role="img" aria-labelledby="compTitle compDesc">
   <title id="compTitle">DeepSeek 128-Token Block Cache Comparison</title>
-  <desc id="compDesc">Diagram comparing prompt prefix cache invalidation without CacheSnipe versus stable 128-token KV cache hit alignment with CacheSnipe.</desc>
+  <desc id="compDesc">Comparison between prompt prefix cache invalidation without CacheSnipe and locked 128-token KV cache hit alignment with CacheSnipe in OpenCode.</desc>
 
   <defs>
     <linearGradient id="compBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#0b0f17" />
-      <stop offset="100%" stop-color="#131b26" />
+      <stop offset="100%" stop-color="#111827" />
     </linearGradient>
+
+    <linearGradient id="beamGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0" />
+      <stop offset="50%" stop-color="#34d399" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+    </linearGradient>
+
     <filter id="shadowBox" x="-2%" y="-2%" width="104%" height="108%">
       <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4" />
     </filter>
+
+    <clipPath id="cacheHitClip">
+      <rect x="180" y="0" width="510" height="62" rx="8" />
+    </clipPath>
+
+    <style>
+      @keyframes hitGlow {
+        0%, 100% {
+          filter: drop-shadow(0 0 3px rgba(16, 185, 129, 0.4));
+        }
+        50% {
+          filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.85));
+        }
+      }
+      @keyframes beamScan {
+        0% {
+          transform: translateX(-350px);
+        }
+        60%, 100% {
+          transform: translateX(550px);
+        }
+      }
+      @keyframes missGlow {
+        0%, 100% {
+          opacity: 0.9;
+        }
+        50% {
+          opacity: 1;
+          filter: drop-shadow(0 0 6px rgba(248, 81, 73, 0.5));
+        }
+      }
+      .anim-hit-badge {
+        animation: hitGlow 3s ease-in-out infinite;
+      }
+      .anim-scan-beam {
+        animation: beamScan 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .anim-miss-badge {
+        animation: missGlow 4s ease-in-out infinite;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .anim-hit-badge, .anim-scan-beam, .anim-miss-badge {
+          animation: none !important;
+        }
+      }
+    </style>
   </defs>
 
   <!-- Background Canvas -->
-  <rect width="1200" height="580" rx="16" fill="url(#compBgGrad)" stroke="#263142" stroke-width="1.5" />
+  <rect width="1200" height="600" rx="16" fill="url(#compBgGrad)" stroke="#1f2937" stroke-width="1.5" />
 
   <!-- Top Header Block -->
-  <g transform="translate(48, 38)">
-    <rect width="160" height="28" rx="6" fill="#8b5cf6" fill-opacity="0.22" stroke="#a78bfa" stroke-opacity="0.5" stroke-width="1" />
-    <text x="80" y="19" fill="#ddd6fe" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" text-anchor="middle" letter-spacing="1">CACHE MECHANISM</text>
-    <text x="178" y="22" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="24" font-weight="800">DeepSeek 128-Token Block Alignment in OpenCode</text>
+  <g transform="translate(48, 34)">
+    <rect width="168" height="28" rx="6" fill="#8b5cf6" fill-opacity="0.2" stroke="#a78bfa" stroke-opacity="0.45" stroke-width="1" />
+    <text x="84" y="19" fill="#ddd6fe" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" text-anchor="middle" letter-spacing="1">CACHE MECHANISM</text>
+    <text x="186" y="22" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="22" font-weight="800">DeepSeek 128-Token Block Alignment in OpenCode</text>
   </g>
 
-  <!-- Top Scenario: Without CacheSnipe (Cache Bust) -->
-  <g transform="translate(48, 96)" filter="url(#shadowBox)">
-    <rect width="1104" height="205" rx="12" fill="#181318" stroke="#f85149" stroke-width="1.5" />
+  <!-- Scenario 1: Without CacheSnipe (Cache Bust) -->
+  <g transform="translate(48, 86)" filter="url(#shadowBox)">
+    <rect width="1104" height="215" rx="12" fill="#171116" stroke="#f85149" stroke-opacity="0.75" stroke-width="1.5" />
 
-    <!-- Label Row -->
-    <rect x="24" y="20" width="180" height="28" rx="5" fill="#f85149" fill-opacity="0.22" />
-    <text x="114" y="39" fill="#ff7b72" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" font-weight="800" text-anchor="middle">WITHOUT CACHESNIPE</text>
-    <text x="218" y="39" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Day rollover, skills drift, or prune alters token 40 -&gt; entire subsequent chain busts</text>
+    <!-- Header / Status Row -->
+    <g transform="translate(24, 18)">
+      <rect width="192" height="26" rx="5" fill="#f85149" fill-opacity="0.22" />
+      <text x="96" y="18" fill="#ff7b72" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="800" text-anchor="middle" letter-spacing="0.5">WITHOUT CACHESNIPE</text>
+      <text x="210" y="18" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14" font-weight="500">Day rollover, skills drift, or prune alters token 40: entire subsequent chain busts</text>
+    </g>
 
     <!-- Token Visual Row -->
-    <g transform="translate(24, 68)">
+    <g transform="translate(24, 62)">
       <!-- Block 0: Drifted -->
-      <rect x="0" y="0" width="160" height="60" rx="8" fill="#4c1d24" stroke="#f85149" stroke-width="1.2" />
-      <text x="80" y="27" fill="#ff7b72" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="700" text-anchor="middle">Block 0: env / date</text>
-      <text x="80" y="47" fill="#fca5a5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" text-anchor="middle">1-byte drift at token 40</text>
+      <rect x="0" y="0" width="160" height="62" rx="8" fill="#3b151b" stroke="#f85149" stroke-width="1.2" />
+      <text x="80" y="26" fill="#ff7b72" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700" text-anchor="middle">Block 0: env / date</text>
+      <text x="80" y="46" fill="#fca5a5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" text-anchor="middle">1-byte drift at token 40</text>
 
-      <text x="178" y="37" fill="#f85149" font-family="sans-serif" font-size="22" font-weight="bold">-&gt;</text>
+      <!-- Broken Connection Marker -->
+      <g transform="translate(160, 0)">
+        <line x1="6" y1="31" x2="14" y2="31" stroke="#f85149" stroke-width="2" />
+        <circle cx="10" cy="31" r="5" fill="#3b151b" stroke="#f85149" stroke-width="1.5" />
+        <line x1="8" y1="29" x2="12" y2="33" stroke="#ff7b72" stroke-width="1.5" />
+        <line x1="12" y1="29" x2="8" y2="33" stroke="#ff7b72" stroke-width="1.5" />
+      </g>
 
-      <!-- Block 1..N: Missed -->
-      <rect x="202" y="0" width="670" height="60" rx="8" fill="#38191f" stroke="#f85149" stroke-width="1.2" stroke-dasharray="6 4" />
-      <text x="537" y="27" fill="#fca5a5" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="700" text-anchor="middle">50,000+ Tokens History &amp; Tool Outputs (100% Cache Miss)</text>
-      <text x="537" y="47" fill="#f87171" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" text-anchor="middle">Prefix broken: DeepSeek cannot match subsequent 128-token contiguous blocks</text>
+      <!-- Block 1..N: Missed History -->
+      <rect x="180" y="0" width="670" height="62" rx="8" fill="#2d1318" stroke="#f85149" stroke-width="1.2" stroke-dasharray="6 4" />
+      <text x="515" y="26" fill="#fca5a5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14" font-weight="700" text-anchor="middle">50,000+ Tokens History &amp; Tool Outputs (100% Cache Miss)</text>
+      <text x="515" y="46" fill="#f87171" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" text-anchor="middle">Prefix broken: DeepSeek cannot match subsequent 128-token contiguous blocks</text>
 
       <!-- Billed Rate Badge -->
-      <rect x="890" y="0" width="190" height="60" rx="8" fill="#450a0a" stroke="#ef4444" stroke-width="1.5" />
-      <text x="985" y="25" fill="#fca5a5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" text-anchor="middle" letter-spacing="0.5">BILLED AS FRESH INPUT</text>
-      <text x="985" y="49" fill="#ffffff" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="800" text-anchor="middle">$0.435 / 1M</text>
+      <g class="anim-miss-badge">
+        <rect x="865" y="0" width="190" height="62" rx="8" fill="#450a0a" stroke="#ef4444" stroke-width="1.5" />
+        <text x="960" y="24" fill="#fca5a5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="0.5">BILLED AS FRESH INPUT</text>
+        <text x="960" y="48" fill="#ffffff" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="800" text-anchor="middle">$0.435 / 1M</text>
+      </g>
     </g>
 
-    <text x="24" y="166" fill="#ff7b72" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="600">Result: Every turn pays full cold rate. A 20-turn agent session burns dollars instead of pennies.</text>
-    <text x="24" y="188" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">OpenCode defaults inject fresh timestamps and prune tool outputs, causing repeated prefix invalidation.</text>
+    <!-- Explanatory Footer -->
+    <g transform="translate(24, 148)">
+      <text x="0" y="16" fill="#ff7b72" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14" font-weight="600">Result: Every turn pays full cold rate. A 20-turn agent session burns dollars instead of pennies.</text>
+      <text x="0" y="38" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">OpenCode defaults inject fresh timestamps and prune tool outputs, causing repeated prefix invalidation.</text>
+    </g>
   </g>
 
-  <!-- Bottom Scenario: With CacheSnipe (Cache Hit Locked) -->
-  <g transform="translate(48, 332)" filter="url(#shadowBox)">
-    <rect width="1104" height="215" rx="12" fill="#0f2219" stroke="#10b981" stroke-width="1.5" />
+  <!-- Scenario 2: With CacheSnipe (Cache Hit Locked) -->
+  <g transform="translate(48, 325)" filter="url(#shadowBox)">
+    <rect width="1104" height="225" rx="12" fill="#0b1b15" stroke="#10b981" stroke-opacity="0.85" stroke-width="1.5" />
 
-    <!-- Label Row -->
-    <rect x="24" y="20" width="180" height="28" rx="5" fill="#10b981" fill-opacity="0.22" />
-    <text x="114" y="39" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" font-weight="800" text-anchor="middle">WITH CACHESNIPE</text>
-    <text x="218" y="39" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Date frozen, blocks pinned, prune disabled: token 0 to 50,000+ stays byte-identical</text>
-
-    <!-- Token Visual Row -->
-    <g transform="translate(24, 68)">
-      <!-- Block 0: Locked -->
-      <rect x="0" y="0" width="160" height="62" rx="8" fill="#064e3b" stroke="#10b981" stroke-width="1.2" />
-      <text x="80" y="27" fill="#6ee7b7" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="700" text-anchor="middle">Block 0: Locked</text>
-      <text x="80" y="47" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" text-anchor="middle">Date &amp; env frozen</text>
-
-      <!-- Blocks 1..N: Cached -->
-      <rect x="175" y="0" width="555" height="62" rx="8" fill="#064e3b" stroke="#10b981" stroke-width="1.2" />
-      <text x="452" y="27" fill="#a7f3d0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="700" text-anchor="middle">50,000+ Tokens Contiguous Match: 128-Token KV Cache Hits (96% to 99% Hit Rate)</text>
-      <text x="452" y="47" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" text-anchor="middle">Billed at DeepSeek Cache-Read rate: $0.003625 / 1M (120x cheaper)</text>
-
-      <!-- Tail Block: Fresh turn -->
-      <rect x="745" y="0" width="130" height="62" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
-      <text x="810" y="27" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="700" text-anchor="middle">Tail (~180 tok)</text>
-      <text x="810" y="47" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" text-anchor="middle">Fresh turn input</text>
-
-      <!-- Cache-Hit Rate Badge -->
-      <rect x="890" y="0" width="190" height="62" rx="8" fill="#064e3b" stroke="#34d399" stroke-width="1.5" />
-      <text x="985" y="25" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" text-anchor="middle" letter-spacing="0.5">CACHE-HIT PRICING</text>
-      <text x="985" y="50" fill="#ffffff" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="19" font-weight="800" text-anchor="middle">$0.0036 / 1M</text>
+    <!-- Header / Status Row -->
+    <g transform="translate(24, 18)">
+      <rect width="170" height="26" rx="5" fill="#10b981" fill-opacity="0.22" />
+      <text x="85" y="18" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="800" text-anchor="middle" letter-spacing="0.5">WITH CACHESNIPE</text>
+      <text x="188" y="18" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14" font-weight="500">Date frozen, blocks pinned, prune disabled: token 0 to 50,000+ stays byte-identical</text>
     </g>
 
-    <text x="24" y="168" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="600">Result: 90% to 99% cost reduction. 7.45 million tokens processed for only $0.19.</text>
-    <text x="24" y="190" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Persistent disk storage preserves the frozen date across multi-day session resumes and restarts.</text>
+    <!-- Token Visual Row -->
+    <g transform="translate(24, 62)">
+      <!-- Block 0: Locked -->
+      <rect x="0" y="0" width="160" height="62" rx="8" fill="#064e3b" stroke="#10b981" stroke-width="1.2" />
+      <text x="80" y="26" fill="#6ee7b7" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700" text-anchor="middle">Block 0: Locked</text>
+      <text x="80" y="46" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" text-anchor="middle">Date &amp; env pinned</text>
+
+      <!-- Linked Marker -->
+      <g transform="translate(160, 0)">
+        <line x1="4" y1="31" x2="16" y2="31" stroke="#10b981" stroke-width="2" />
+        <circle cx="10" cy="31" r="3" fill="#10b981" />
+      </g>
+
+      <!-- Blocks 1..N: Contiguous KV Cache Hit -->
+      <g>
+        <rect x="180" y="0" width="510" height="62" rx="8" fill="#064e3b" stroke="#10b981" stroke-width="1.3" />
+        
+        <!-- Animated Shimmer Beam inside Cache Hit container -->
+        <g clip-path="url(#cacheHitClip)">
+          <rect class="anim-scan-beam" x="180" y="0" width="160" height="62" fill="url(#beamGrad)" />
+        </g>
+
+        <!-- Properly spaced, non-overlapping text inside 510px container -->
+        <text x="435" y="26" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14" font-weight="700" text-anchor="middle">50,000+ Tokens Contiguous Match</text>
+        <text x="435" y="46" fill="#34d399" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" text-anchor="middle">KV Cache Read: 96% to 99% hit rate ($0.0036/1M)</text>
+      </g>
+
+      <!-- Tail Block: Fresh turn -->
+      <g transform="translate(705, 0)">
+        <rect x="0" y="0" width="145" height="62" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
+        <text x="72" y="26" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700" text-anchor="middle">Tail (~180 tok)</text>
+        <text x="72" y="46" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" text-anchor="middle">Fresh turn input</text>
+      </g>
+
+      <!-- Cache-Hit Rate Badge -->
+      <g class="anim-hit-badge" transform="translate(865, 0)">
+        <rect x="0" y="0" width="190" height="62" rx="8" fill="#064e3b" stroke="#34d399" stroke-width="1.5" />
+        <text x="95" y="23" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="0.5">CACHE-HIT PRICING</text>
+        <text x="95" y="48" fill="#ffffff" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="19" font-weight="800" text-anchor="middle">$0.0036 / 1M</text>
+      </g>
+    </g>
+
+    <!-- Explanatory Footer -->
+    <g transform="translate(24, 152)">
+      <text x="0" y="16" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14" font-weight="600">Result: 90% to 99% cost reduction. 7.45 million tokens processed for only $0.19.</text>
+      <text x="0" y="38" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Persistent disk storage preserves the frozen date across multi-day session resumes and restarts.</text>
+    </g>
   </g>
 </svg>

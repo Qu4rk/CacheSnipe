@@ -22,6 +22,34 @@
     <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="112%">
       <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.45" />
     </filter>
+    <style>
+      @keyframes flowDash {
+        to {
+          stroke-dashoffset: -20;
+        }
+      }
+      @keyframes targetPulse {
+        0%, 100% {
+          filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.3));
+        }
+        50% {
+          filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.75));
+        }
+      }
+      .flow-stream {
+        stroke-dasharray: 6 4;
+        animation: flowDash 1.4s linear infinite;
+      }
+      .anim-target-badge {
+        animation: targetPulse 3.2s ease-in-out infinite;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .flow-stream, .anim-target-badge {
+          animation: none !important;
+          stroke-dashoffset: 0 !important;
+        }
+      }
+    </style>
   </defs>
 
   <!-- Background Canvas -->
@@ -88,10 +116,10 @@
   </g>
 
   <!-- Connectors Left to Middle -->
-  <path d="M 378 146 L 430 146" stroke="#8b5cf6" stroke-width="2.5" stroke-dasharray="5 4" />
-  <path d="M 378 270 L 430 270" stroke="#8b5cf6" stroke-width="2.5" stroke-dasharray="5 4" />
-  <path d="M 378 394 L 430 394" stroke="#8b5cf6" stroke-width="2.5" stroke-dasharray="5 4" />
-  <path d="M 378 518 L 430 518" stroke="#8b5cf6" stroke-width="2.5" stroke-dasharray="5 4" />
+  <path class="flow-stream" d="M 378 146 L 430 146" stroke="#8b5cf6" stroke-width="2.5" />
+  <path class="flow-stream" d="M 378 270 L 430 270" stroke="#8b5cf6" stroke-width="2.5" />
+  <path class="flow-stream" d="M 378 394 L 430 394" stroke="#8b5cf6" stroke-width="2.5" />
+  <path class="flow-stream" d="M 378 518 L 430 518" stroke="#8b5cf6" stroke-width="2.5" />
 
   <!-- Middle Column: CacheSnipe Core (x=430, w=410) -->
   <!-- Card 1: P0 + P0b -->
@@ -127,13 +155,13 @@
   </g>
 
   <!-- Connectors Middle to Right -->
-  <path d="M 840 146 L 890 240" stroke="#10b981" stroke-width="2.5" />
-  <path d="M 840 270 L 890 275" stroke="#10b981" stroke-width="2.5" />
-  <path d="M 840 394 L 890 320" stroke="#10b981" stroke-width="2.5" />
-  <path d="M 840 518 L 890 390" stroke="#10b981" stroke-width="2.5" />
+  <path class="flow-stream" d="M 840 146 L 890 240" stroke="#10b981" stroke-width="2.5" />
+  <path class="flow-stream" d="M 840 270 L 890 275" stroke="#10b981" stroke-width="2.5" />
+  <path class="flow-stream" d="M 840 394 L 890 320" stroke="#10b981" stroke-width="2.5" />
+  <path class="flow-stream" d="M 840 518 L 890 390" stroke="#10b981" stroke-width="2.5" />
 
   <!-- Right Column: Result Card (x=890, w=262, h=468, y=98) -->
-  <g transform="translate(890, 98)" filter="url(#cardShadow)">
+  <g class="anim-target-badge" transform="translate(890, 98)" filter="url(#cardShadow)">
     <rect width="262" height="468" rx="12" fill="#0b2219" stroke="#10b981" stroke-width="1.8" />
     
     <!-- Top Pill -->
