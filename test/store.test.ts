@@ -265,7 +265,7 @@ test("healing leaves a capped, consistent record alone", () => {
     writeFileSync(join(paths.sessions, "ses_sample.json"), `${JSON.stringify(capped, null, 2)}\n`);
 
     const loaded = ctx.store.read("ses_sample");
-    assert.equal(loaded?.turns, MAX_HISTORY_POINTS, "capped history is consistent — nothing to heal");
+    assert.equal(loaded?.turns, MAX_HISTORY_POINTS, "capped history is consistent: nothing to heal");
     assert.ok(!loaded?.notes.some((note: string) => note.includes("healed")));
   } finally {
     ctx.cleanup();

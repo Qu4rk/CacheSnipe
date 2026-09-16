@@ -70,7 +70,7 @@ Without CacheSnipe, several standard OpenCode behaviors inadvertently break Deep
 
 ### The Fix
 
-CacheSnipe establishes five defensive pillars:
+CacheSnipe fixes this across five parts of the pipeline:
 
 - **P0 Date Freeze**: Captures the date line upon first sighting, writes it to persistent session storage, and rewrites any future date changes back to the session-start date. Resuming a session days later keeps its original cache chain intact.
 - **P0b Block Hashing and Drift Attribution**: Generates SHA-256 hashes for `<env>`, `<available_skills>`, `<mcp_instructions>`, and `<available_references>`. If drift occurs, CacheSnipe pinpoints the exact block and the first differing line.
@@ -86,7 +86,7 @@ CacheSnipe establishes five defensive pillars:
 
 ## Provenance and Architecture: Pi to OpenCode
 
-CacheSnipe is a custom flavour and an architectural port of [`pi-deepseek-cache`](https://github.com/rohaquinlop/pi-deepseek-cache) by rohaquinlop. The original plugin was conceived specifically for the **Pi agent harness**. CacheSnipe adapts and rebuilds those ideas for the **OpenCode harness**, specifically targeting the **OpenCode Desktop app** on macOS.
+CacheSnipe is my own flavour and an architectural port of [`pi-deepseek-cache`](https://github.com/rohaquinlop/pi-deepseek-cache) by rohaquinlop. The original plugin was conceived specifically for the **Pi agent harness**. I ported and rebuilt it over to the **OpenCode harness**, specifically targeting the **OpenCode Desktop app** on macOS (as well as OpenCode CLI).
 
 This port involved several fundamental design changes:
 
@@ -235,17 +235,38 @@ After modifying the configuration, restart the OpenCode Desktop app so the serve
 ---
 
 ## Automatic Setup for Your Own Agents
-
+ 
 OpenCode plugins operate at the server level. This means **all agents and subagents inherit CacheSnipe automatically** without needing per-agent plugin declarations.
-
+ 
 ### 1. Primary and Delegated Subagents
+ 
+When OpenCode spawns background subagents or parallel workers to explore files, run tests, or execute terminal commands, those child sessions pass through CacheSnipe's hook pipeline automatically. Their prompt prefixes are guarded, their tool runs are tracked, and their token savings register in your aggregate stats.
+ 
+### 2. Custom Agents in `opencode.json`
 
-When OpenCode spawns background subagents or parallel workers to explore files, run tests, or execute terminal commands, those child sessions pass through CacheSnipe's hook pipeline. Their prompt prefixes are guarded, their tool runs are tracked, and their token savings register in your aggregate stats.
+If you declare named agents directly in `~/.config/opencode/opencode.json` (or `opencode.jsonc`), declare them normally:
 
-### 2. Custom Agent Definitions
+```jsonc
+{
+  "agent": {
+    "code-reviewer": {
+      "model": "deepseek/deepseek-v4-pro-0813",
+      "temperature": 0.1,
+      "description": "Fast code review agent"
+    },
+    "test-runner": {
+      "model": "deepseek/deepseek-v4-flash",
+      "temperature": 0,
+      "description": "Deterministic test runner"
+    }
+  }
+}
+```
 
-When defining custom agents in `~/.config/opencode/agents/` (or `.opencode/agents/`), follow these practices to guarantee immediate 90% to 99% cache hits:
-
+### 3. Standalone Agent YAML Definitions
+ 
+When defining custom agents in `~/.config/opencode/agents/` (or project-level `.opencode/agents/`), simply specify a DeepSeek model:
+ 
 ```yaml
 # ~/.config/opencode/agents/code-reviewer.yaml
 name: code-reviewer
@@ -256,10 +277,10 @@ system_prompt: |
   You are an expert code reviewer. Analyze the provided diff for correctness,
   performance regressions, and security vulnerabilities.
 ```
-
+ 
 Rules for custom agent authors:
 - **Pin DeepSeek Models**: Declare `deepseek/deepseek-v4-flash` or `deepseek/deepseek-v4-pro-0813`. CacheSnipe detects DeepSeek model identifiers and engages automatically. Non-DeepSeek agents pass through completely untouched.
-- **Keep System Prompts Deterministic**: Avoid embedding dynamic runtime expressions (such as timestamps or process IDs) into custom agent system prompt templates. CacheSnipe freezes OpenCode's built-in date tags, but static instructions ensure every turn aligns with the KV cache.
+- **Keep System Prompts Deterministic**: Avoid embedding dynamic runtime expressions (such as timestamps, random seeds, or process IDs) into custom agent system prompt templates. CacheSnipe freezes OpenCode's built-in date tags, but keeping custom agent instructions static ensures every turn aligns cleanly with the KV cache.
 - **Consistent Tool Configuration**: When agents share the same MCP servers and tools across requests, the tool definitions remain stable in the prompt prefix.
 
 ---
@@ -327,9 +348,9 @@ npm run probe
 
 ---
 
-## Technical Findings and Gaps
+## Real-World Constraints and Tradeoffs
 
-Engineering honesty matters:
+A few important technical details to know upfront:
 
 - **Turn 1 Is Always Cold**: DeepSeek must ingest the prefix on Turn 1 before it can cache it. The first turn always incurs standard input pricing.
 - **128-Token Tail Residue**: Because DeepSeek caches in 128-token increments, the tail end of any prompt (typically 39 to 252 tokens) is re-sent on every turn. A hit rate of 100% is mathematically impossible; a session with 0 prefix lost will typically register between 90% and 99% hit rate depending on context size.

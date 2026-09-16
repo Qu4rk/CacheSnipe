@@ -46,7 +46,7 @@ export function warmHitRate(history: TurnPoint[]): number {
 }
 
 /**
- * Tokens of previously cached prefix that had to be uploaded again — the honest
+ * Tokens of previously cached prefix that had to be uploaded again: the honest
  * prefix-health measure. Every turn also sends its own new content (tool output,
  * your message), which is miss input no matter how perfect the prefix is, so a hit
  * rate alone cannot tell a broken chain from a healthy agentic turn. Reads grow
@@ -67,7 +67,7 @@ export function pct(rate: number): string {
 function trendLines(stats: SessionStats): string[] {
   const lines: string[] = [];
   for (const point of stats.history.slice(-20)) {
-    const cold = point.turn === 1 ? "  cold — first request of the session" : "";
+    const cold = point.turn === 1 ? "  cold (first request of the session)" : "";
     lines.push(
       `  ${String(point.turn).padStart(3)}  ${pct(point.hitRate).padStart(6)}  ${bar(point.hitRate)} ${cold}`,
     );
@@ -96,8 +96,8 @@ function sessionSection(
   const lines: string[] = [
     `this session  ${stats.sessionID}  ${stats.providerID}/${stats.modelID}`,
     `  turns                 ${stats.turns} assistant messages / ${stats.requests} requests`,
-    `  hit rate (turns 2+)   ${warm === 0 && stats.history.length <= 1 ? "n/a — single turn so far" : pct(warm)}   ${bar(warm)}`,
-    `  prefix lost (turns 2+) ${formatTokens(lost)} tok   ${lost === 0 ? "chain intact — no cached prefix re-sent" : "cached prefix was re-sent; check the breaks below"}`,
+    `  hit rate (turns 2+)   ${warm === 0 && stats.history.length <= 1 ? "n/a (single turn so far)" : pct(warm)}   ${bar(warm)}`,
+    `  prefix lost (turns 2+) ${formatTokens(lost)} tok   ${lost === 0 ? "chain intact (no cached prefix re-sent)" : "cached prefix was re-sent; check the breaks below"}`,
     `                        (hit rate excludes each turn's own new content, which cannot be cached)` ,
     `  cache read            ${formatTokens(stats.cacheRead)} tok  @ ${price ? `$${price.cacheRead}/1M` : "unknown price"}`,
     `  miss input            ${formatTokens(stats.missInput)} tok  @ ${price ? `$${price.input}/1M` : "unknown price"}`,
@@ -122,7 +122,7 @@ function sessionSection(
     lines.push("");
     lines.push("config snapshot");
     lines.push(
-      `  compaction.prune      ${config.prune === false ? "false (good — pruning rewrites old tool outputs mid-history)" : String(config.prune)}`,
+      `  compaction.prune      ${config.prune === false ? "false (good: pruning rewrites old tool outputs mid-history)" : String(config.prune)}`,
     );
     if (config.prune !== false) {
       lines.push("                        WARNING: prune is not disabled; it busts the prefix mid-session.");
@@ -147,7 +147,7 @@ export function renderSummary(input: {
 }): string {
   const now = input.now ?? Date.now();
   const lines: string[] = [
-    "CacheSnipe — DeepSeek prompt-cache report",
+    "CacheSnipe: DeepSeek prompt-cache report",
     `generated ${new Date(now).toISOString()}`,
     "",
   ];
@@ -205,7 +205,7 @@ export function renderGraph(input: {
   now?: number;
 }): string {
   const now = input.now ?? Date.now();
-  const lines: string[] = ["CacheSnipe — cache-hit trend", `generated ${new Date(now).toISOString()}`, ""];
+  const lines: string[] = ["CacheSnipe: cache-hit trend", `generated ${new Date(now).toISOString()}`, ""];
 
   if (input.current) {
     lines.push(`session ${input.current.sessionID} (${input.current.providerID}/${input.current.modelID})`);

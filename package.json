@@ -5,6 +5,12 @@
   "type": "module",
   "description": "OpenCode plugin that keeps the DeepSeek prompt prefix byte-identical so every turn after the first bills at cache-hit price.",
   "license": "MIT",
+  "author": "Elias Liasides <eliasliasides@users.noreply.github.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Qu4rk/CacheSnipe.git"
+  },
+  "homepage": "https://github.com/Qu4rk/CacheSnipe#readme",
   "engines": {
     "node": ">=22"
   },
