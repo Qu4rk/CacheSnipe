@@ -1,0 +1,27 @@
+{
+  "name": "cachesnipe",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "OpenCode plugin that keeps the DeepSeek prompt prefix byte-identical so every turn after the first bills at cache-hit price.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test dist/test/*.test.js scripts/*.test.mjs",
+    "verify": "npm run build && node scripts/verify.mjs",
+    "breaks": "node scripts/breaks.mjs",
+    "probe": "node scripts/cache-probe.mjs",
+    "wirecheck": "npm run build && node scripts/wire-check.mjs",
+    "patch-config": "node scripts/patch-config.mjs",
+    "install-plugin": "./install.sh --yes"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "1.18.31",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.3"
+  }
+}
