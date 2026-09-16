@@ -88,7 +88,7 @@ CacheSnipe hooks into OpenCode across five layers of the request lifecycle:
 
 ## Provenance: From Pi to OpenCode
 
-Credit where credit is due: CacheSnipe is my own flavour and an architectural port of [`pi-deepseek-cache`](https://github.com/rohaquinlop/pi-deepseek-cache) originally created by **rohaquinlop** for the **Pi agent harness**.
+Credit where credit is due: CacheSnipe is my own flavour and an architectural port of [`pi-deepseek-cache`](https://github.com/rohaquinlop/pi-deepseek-cache) originally created by **rohaquinlop** for the **Pi agent harness**. A huge thank you to rohaquinlop for proving just how powerful prefix locking is for DeepSeek models and inspiring this work.
 
 When I switched over to using **OpenCode Desktop** on macOS as my primary daily driver, I really missed the aggressive prompt-cache optimization that rohaquinlop built for Pi. But OpenCode runs on a completely different architecture, so porting it required several major structural changes:
 
@@ -365,5 +365,5 @@ A few important technical details to know upfront:
 ## License and Acknowledgments
 
 - **License**: MIT License.
-- **Original Work**: Ported from [`pi-deepseek-cache`](https://github.com/rohaquinlop/pi-deepseek-cache) created by **rohaquinlop** for the Pi agent harness.
+- **Acknowledgments & Thanks**: Huge thanks to **rohaquinlop** for creating [`pi-deepseek-cache`](https://github.com/rohaquinlop/pi-deepseek-cache) for the Pi agent harness. The original architecture demonstrated the power of DeepSeek prompt caching and served as the foundation for this OpenCode port.
 - **Port Author**: Built and maintained by **Elias Liasides** ([Qu4rk](https://github.com/Qu4rk)) for the OpenCode community.
