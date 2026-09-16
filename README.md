@@ -39,21 +39,22 @@ CacheSnipe intercepts OpenCode's prompt pipeline, freezes dynamic dates, pins sy
 
 ## Real-World Proof
 
-Here is what this looks like in my own daily workflow. This is a screenshot directly from my DeepSeek developer console after a heavy coding run using CacheSnipe with official DeepSeek API keys:
+Here is what this looks like in my own daily workflow. This is a screenshot directly from my DeepSeek developer console after an intensive coding run using CacheSnipe with official DeepSeek API keys:
 
 <p align="center">
-  <img src="assets/deepseek-cost-proof.png" alt="DeepSeek Dashboard Proof: 7.45M tokens for $0.19 across 159 requests" width="850" />
+  <img src="assets/deepseek-cost-proof.png" alt="DeepSeek Dashboard Proof: 70.3M tokens for $0.53 across 380 requests" width="850" />
 </p>
 
 ```text
-Tokens Processed:   7,453,600 tokens
-Total API Requests: 159 requests
-Total Billed Cost:  $0.19 USD
+Tokens Processed:   70,319,701 tokens (70.3 Million)
+Total API Requests: 380 requests
+Total Billed Cost:  $0.53 USD
+Blended Rate:       ~$0.0075 / 1M tokens
 ```
 
-Processing nearly 7.5 million tokens on an advanced reasoning model for nineteen cents is only possible when the prompt prefix stays locked.
+Processing over 70 million tokens on advanced DeepSeek models across 380 requests for just fifty-three cents is only possible when the prompt prefix stays locked.
 
-Without prefix locking, pushing 7.5 million input tokens through DeepSeek Pro would have cost over $3.20. With CacheSnipe locking the prefix, 96.1% of all warm turns hit the KV cache at $0.0036 per million tokens, with cache-read volume climbing monotonically from 16,384 up to 111,872 tokens and exactly 0 lost prefix tokens on every single turn.
+Without prefix locking, pushing 70.3 million input tokens through DeepSeek Pro would have cost over $30.00 (or over $10.50 even on Flash). With CacheSnipe locking the prefix, warm turns consistently achieved 95% to 99% KV cache hit rates at $0.0036 per million tokens, keeping the entire 380-request workload down to pocket change.
 
 ---
 

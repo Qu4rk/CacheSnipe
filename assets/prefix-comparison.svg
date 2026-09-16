@@ -176,7 +176,7 @@
 
     <!-- Explanatory Footer -->
     <g transform="translate(24, 152)">
-      <text x="0" y="16" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14" font-weight="600">Result: 90% to 99% cost reduction. 7.45 million tokens processed for only $0.19.</text>
+      <text x="0" y="16" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14" font-weight="600">Result: 90% to 99% cost reduction. 70.3 million tokens processed for only $0.53.</text>
       <text x="0" y="38" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Persistent disk storage preserves the frozen date across multi-day session resumes and restarts.</text>
     </g>
   </g>
