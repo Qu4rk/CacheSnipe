@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" width="100%" height="100%" role="img" aria-labelledby="flowTitle flowDesc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 740" width="100%" height="100%" role="img" aria-labelledby="flowTitle flowDesc">
   <title id="flowTitle">CacheSnipe Architecture and Hook Pipeline</title>
-  <desc id="flowDesc">Architecture diagram showing how CacheSnipe intercepts OpenCode transforms to freeze dates, prevent history pruning, and lock prompt prefixes for DeepSeek caching.</desc>
+  <desc id="flowDesc">Architecture diagram showing how CacheSnipe intercepts OpenCode transforms and commands across layers L0 to L4 to freeze dates, prevent history pruning, warm caches, and lock prompt prefixes for DeepSeek caching.</desc>
 
   <defs>
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -53,26 +53,28 @@
   </defs>
 
   <!-- Background Canvas -->
-  <rect width="1200" height="620" rx="16" fill="url(#bgGrad)" stroke="#263142" stroke-width="1.5" />
+  <rect width="1200" height="740" rx="16" fill="url(#bgGrad)" stroke="#263142" stroke-width="1.5" />
 
   <!-- Subtle Structural Grid -->
   <g stroke="#ffffff" stroke-width="1" opacity="0.035">
-    <line x1="100" y1="0" x2="100" y2="620" />
-    <line x1="200" y1="0" x2="200" y2="620" />
-    <line x1="300" y1="0" x2="300" y2="620" />
-    <line x1="400" y1="0" x2="400" y2="620" />
-    <line x1="500" y1="0" x2="500" y2="620" />
-    <line x1="600" y1="0" x2="600" y2="620" />
-    <line x1="700" y1="0" x2="700" y2="620" />
-    <line x1="800" y1="0" x2="800" y2="620" />
-    <line x1="900" y1="0" x2="900" y2="620" />
-    <line x1="1000" y1="0" x2="1000" y2="620" />
-    <line x1="1100" y1="0" x2="1100" y2="620" />
+    <line x1="100" y1="0" x2="100" y2="740" />
+    <line x1="200" y1="0" x2="200" y2="740" />
+    <line x1="300" y1="0" x2="300" y2="740" />
+    <line x1="400" y1="0" x2="400" y2="740" />
+    <line x1="500" y1="0" x2="500" y2="740" />
+    <line x1="600" y1="0" x2="600" y2="740" />
+    <line x1="700" y1="0" x2="700" y2="740" />
+    <line x1="800" y1="0" x2="800" y2="740" />
+    <line x1="900" y1="0" x2="900" y2="740" />
+    <line x1="1000" y1="0" x2="1000" y2="740" />
+    <line x1="1100" y1="0" x2="1100" y2="740" />
     <line x1="0" y1="100" x2="1200" y2="100" />
     <line x1="0" y1="200" x2="1200" y2="200" />
     <line x1="0" y1="300" x2="1200" y2="300" />
     <line x1="0" y1="400" x2="1200" y2="400" />
     <line x1="0" y1="500" x2="1200" y2="500" />
+    <line x1="0" y1="600" x2="1200" y2="600" />
+    <line x1="0" y1="700" x2="1200" y2="700" />
   </g>
 
   <!-- Header Block -->
@@ -82,13 +84,13 @@
     <text x="156" y="22" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="24" font-weight="800">How CacheSnipe Locks OpenCode's Prompt Prefix</text>
   </g>
 
-  <!-- Left Column: OpenCode Hooks (x=48, w=330) -->
+  <!-- Left Column: OpenCode Hooks & Triggers (x=48, w=330) -->
   <!-- Card 1: System Transform -->
   <g transform="translate(48, 98)" filter="url(#cardShadow)">
     <rect width="330" height="96" rx="10" fill="#151b27" stroke="#334155" stroke-width="1.5" />
     <text x="20" y="36" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="700">experimental.chat.system</text>
     <text x="20" y="62" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Intercepts system prompt &amp; env tags</text>
-    <text x="20" y="82" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Isolates dynamic date line on turn 1</text>
+    <text x="20" y="82" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Isolates date, CWD &amp; tool definitions</text>
   </g>
 
   <!-- Card 2: Messages Transform -->
@@ -115,54 +117,72 @@
     <text x="20" y="82" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Extracts cache.read, miss input, and cost</text>
   </g>
 
+  <!-- Card 5: Warm-up Command -->
+  <g transform="translate(48, 594)" filter="url(#cardShadow)">
+    <rect width="330" height="96" rx="10" fill="#151b27" stroke="#334155" stroke-width="1.5" />
+    <text x="20" y="36" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="700">/cache-warm (agent command)</text>
+    <text x="20" y="62" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Pre-warms baseline prompt prefix</text>
+    <text x="20" y="82" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Replays env &amp; skills at temp 0 before turn 1</text>
+  </g>
+
   <!-- Connectors Left to Middle -->
   <path class="flow-stream" d="M 378 146 L 430 146" stroke="#8b5cf6" stroke-width="2.5" />
   <path class="flow-stream" d="M 378 270 L 430 270" stroke="#8b5cf6" stroke-width="2.5" />
   <path class="flow-stream" d="M 378 394 L 430 394" stroke="#8b5cf6" stroke-width="2.5" />
   <path class="flow-stream" d="M 378 518 L 430 518" stroke="#8b5cf6" stroke-width="2.5" />
+  <path class="flow-stream" d="M 378 642 L 430 642" stroke="#8b5cf6" stroke-width="2.5" />
 
-  <!-- Middle Column: CacheSnipe Core (x=430, w=410) -->
-  <!-- Card 1: P0 + P0b -->
+  <!-- Middle Column: CacheSnipe Core Layers (x=430, w=410) -->
+  <!-- Card 1: L0 + L0b + L0c -->
   <g transform="translate(430, 98)" filter="url(#cardShadow)">
     <rect width="410" height="96" rx="10" fill="#1e1833" stroke="#7c3aed" stroke-width="1.5" />
-    <text x="20" y="36" fill="#e9d5ff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="700">P0 Date Freeze + P0b Hashing</text>
-    <text x="20" y="62" fill="#d8b4fe" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Persists session date on disk; attributes drift</text>
-    <text x="20" y="82" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Resumed sessions keep identical token 0 across days</text>
+    <text x="20" y="36" fill="#e9d5ff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="17" font-weight="700">L0 Date Freeze + L0b Hash + L0c CWD</text>
+    <text x="20" y="62" fill="#d8b4fe" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Persists session date &amp; CWD; attributes drift</text>
+    <text x="20" y="82" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Canonicalizes XML order; keeps token 0 across days</text>
   </g>
 
-  <!-- Card 2: P2 -->
+  <!-- Card 2: L2 -->
   <g transform="translate(430, 222)" filter="url(#cardShadow)">
     <rect width="410" height="96" rx="10" fill="#1e1833" stroke="#7c3aed" stroke-width="1.5" />
-    <text x="20" y="36" fill="#e9d5ff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="700">P2 Prefix Guard &amp; Classifier</text>
+    <text x="20" y="36" fill="#e9d5ff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="700">L2 Prefix Guard &amp; Classifier</text>
     <text x="20" y="62" fill="#d8b4fe" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Validates extensions; classifies rewinds vs breaks</text>
     <text x="20" y="82" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Allows safe /undo retries without false alarms</text>
   </g>
 
-  <!-- Card 3: P3 -->
+  <!-- Card 3: L3 -->
   <g transform="translate(430, 346)" filter="url(#cardShadow)">
     <rect width="410" height="96" rx="10" fill="#1e1833" stroke="#7c3aed" stroke-width="1.5" />
-    <text x="20" y="36" fill="#e9d5ff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="700">P3 Safe Compaction Enforcer</text>
+    <text x="20" y="36" fill="#e9d5ff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="700">L3 Safe Compaction Enforcer</text>
     <text x="20" y="62" fill="#d8b4fe" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Enforces prune=false in OpenCode config</text>
     <text x="20" y="82" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Prevents destructive history wiping of past tool outputs</text>
   </g>
 
-  <!-- Card 4: P1 -->
+  <!-- Card 4: L1 -->
   <g transform="translate(430, 470)" filter="url(#cardShadow)">
     <rect width="410" height="96" rx="10" fill="#1e1833" stroke="#7c3aed" stroke-width="1.5" />
-    <text x="20" y="36" fill="#e9d5ff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="700">P1 Telemetry &amp; Reporting Store</text>
+    <text x="20" y="36" fill="#e9d5ff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="700">L1 Telemetry &amp; Reporting Store</text>
     <text x="20" y="62" fill="#d8b4fe" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Renders live /cache-stats and /cache-graph</text>
     <text x="20" y="82" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Atomic file writes support concurrent OpenCode windows</text>
   </g>
 
-  <!-- Connectors Middle to Right -->
-  <path class="flow-stream" d="M 840 146 L 890 240" stroke="#10b981" stroke-width="2.5" />
-  <path class="flow-stream" d="M 840 270 L 890 275" stroke="#10b981" stroke-width="2.5" />
-  <path class="flow-stream" d="M 840 394 L 890 320" stroke="#10b981" stroke-width="2.5" />
-  <path class="flow-stream" d="M 840 518 L 890 390" stroke="#10b981" stroke-width="2.5" />
+  <!-- Card 5: L4 -->
+  <g transform="translate(430, 594)" filter="url(#cardShadow)">
+    <rect width="410" height="96" rx="10" fill="#1e1833" stroke="#7c3aed" stroke-width="1.5" />
+    <text x="20" y="36" fill="#e9d5ff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="700">L4 Cache Warm-up Engine</text>
+    <text x="20" y="62" fill="#d8b4fe" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Replays persisted baseline blocks to DeepSeek API</text>
+    <text x="20" y="82" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Double-ping verifies KV hit; primes server disk cache</text>
+  </g>
 
-  <!-- Right Column: Result Card (x=890, w=262, h=468, y=98) -->
+  <!-- Connectors Middle to Right -->
+  <path class="flow-stream" d="M 840 146 L 890 200" stroke="#10b981" stroke-width="2.5" />
+  <path class="flow-stream" d="M 840 270 L 890 290" stroke="#10b981" stroke-width="2.5" />
+  <path class="flow-stream" d="M 840 394 L 890 394" stroke="#10b981" stroke-width="2.5" />
+  <path class="flow-stream" d="M 840 518 L 890 500" stroke="#10b981" stroke-width="2.5" />
+  <path class="flow-stream" d="M 840 642 L 890 590" stroke="#10b981" stroke-width="2.5" />
+
+  <!-- Right Column: Result Card (x=890, w=262, h=592, y=98) -->
   <g class="anim-target-badge" transform="translate(890, 98)" filter="url(#cardShadow)">
-    <rect width="262" height="468" rx="12" fill="#0b2219" stroke="#10b981" stroke-width="1.8" />
+    <rect width="262" height="592" rx="12" fill="#0b2219" stroke="#10b981" stroke-width="1.8" />
     
     <!-- Top Pill -->
     <rect x="18" y="24" width="226" height="46" rx="8" fill="#10b981" fill-opacity="0.18" />
@@ -170,27 +190,33 @@
     <text x="131" y="61" fill="#a7f3d0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" text-anchor="middle">api.deepseek.com</text>
 
     <!-- Main Stat 1 -->
-    <text x="24" y="112" fill="#6ee7b7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" font-weight="700" letter-spacing="0.5">INPUT CACHE DISCOUNT</text>
-    <text x="24" y="152" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="34" font-weight="800">50x to 120x</text>
-    <text x="24" y="174" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">flash $0.003/M | pro $0.003625/M</text>
+    <text x="24" y="116" fill="#6ee7b7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" font-weight="700" letter-spacing="0.5">INPUT CACHE DISCOUNT</text>
+    <text x="24" y="156" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="34" font-weight="800">50x to 120x</text>
+    <text x="24" y="178" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">flash $0.003/M | pro $0.003625/M</text>
 
-    <line x1="24" y1="202" x2="238" y2="202" stroke="#10b981" stroke-opacity="0.35" stroke-width="1.2" />
+    <line x1="24" y1="208" x2="238" y2="208" stroke="#10b981" stroke-opacity="0.35" stroke-width="1.2" />
 
     <!-- Main Stat 2 -->
-    <text x="24" y="234" fill="#6ee7b7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" font-weight="700" letter-spacing="0.5">WARM TURN RETENTION</text>
-    <text x="24" y="274" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="34" font-weight="800">&gt;= 90% Hits</text>
-    <text x="24" y="296" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">0 lost prefix tokens on turns 2+</text>
+    <text x="24" y="240" fill="#6ee7b7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" font-weight="700" letter-spacing="0.5">WARM TURN RETENTION</text>
+    <text x="24" y="280" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="34" font-weight="800">&gt;= 90% Hits</text>
+    <text x="24" y="302" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">0 lost prefix tokens on turns 2+</text>
 
-    <line x1="24" y1="326" x2="238" y2="326" stroke="#10b981" stroke-opacity="0.35" stroke-width="1.2" />
+    <line x1="24" y1="332" x2="238" y2="332" stroke="#10b981" stroke-opacity="0.35" stroke-width="1.2" />
 
     <!-- Checkmark Badge -->
-    <g transform="translate(24, 356)">
+    <g transform="translate(24, 360)">
       <circle cx="12" cy="12" r="12" fill="#10b981" />
       <path d="M 7 12 L 10 15 L 17 9" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
       <text x="32" y="17" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="700">Zero Local Breaks</text>
     </g>
     
-    <text x="24" y="412" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Persistent session date across days</text>
-    <text x="24" y="434" fill="#6ee7b7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" font-weight="600">Electron Node runtime (no Bun)</text>
+    <text x="24" y="416" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Persistent session date &amp; CWD</text>
+    <text x="24" y="440" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Canonical XML skill/tool order</text>
+    <text x="24" y="464" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Pre-warmed baseline KV cache</text>
+    <text x="24" y="488" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Prune-free context compaction</text>
+
+    <line x1="24" y1="518" x2="238" y2="518" stroke="#10b981" stroke-opacity="0.35" stroke-width="1.2" />
+
+    <text x="24" y="552" fill="#6ee7b7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" font-weight="600">Electron Node runtime (no Bun)</text>
   </g>
 </svg>
