@@ -20,7 +20,7 @@
 
 ## Why I Built CacheSnipe
 
-I do almost all my agentic coding inside OpenCode. If you have spent any serious time running multi-turn coding sessions with DeepSeek models, you know how fast input token costs can creep up once your context crosses 30,000 to 100,000 tokens.
+I do offload almost all of my building gruntwork to OpenCode (And I'm pretty sure most of you use cheaper models to do the same). If you have spent any serious time running multi-turn coding sessions with DeepSeek models, you know how fast input token costs can creep up once your context crosses 30,000 to 100,000 tokens.
 
 DeepSeek actually offers unbelievable prompt-cache pricing:
 
