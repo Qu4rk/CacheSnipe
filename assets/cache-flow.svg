@@ -84,53 +84,53 @@
     <text x="156" y="22" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="24" font-weight="800">How CacheSnipe Locks OpenCode's Prompt Prefix</text>
   </g>
 
-  <!-- Left Column: OpenCode Hooks & Triggers (x=48, w=330) -->
+  <!-- Left Column: OpenCode Hooks & Triggers (x=48, w=338) -->
   <!-- Card 1: System Transform -->
   <g transform="translate(48, 98)" filter="url(#cardShadow)">
-    <rect width="330" height="96" rx="10" fill="#151b27" stroke="#334155" stroke-width="1.5" />
-    <text x="20" y="36" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="700">experimental.chat.system</text>
-    <text x="20" y="62" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Intercepts system prompt &amp; env tags</text>
-    <text x="20" y="82" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Isolates date, CWD &amp; tool definitions</text>
+    <rect width="338" height="96" rx="10" fill="#151b27" stroke="#334155" stroke-width="1.5" />
+    <text x="18" y="36" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="700">experimental.chat.system</text>
+    <text x="18" y="62" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Intercepts system prompt &amp; env tags</text>
+    <text x="18" y="82" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Isolates date, CWD &amp; tool definitions</text>
   </g>
 
   <!-- Card 2: Messages Transform -->
   <g transform="translate(48, 222)" filter="url(#cardShadow)">
-    <rect width="330" height="96" rx="10" fill="#151b27" stroke="#334155" stroke-width="1.5" />
-    <text x="20" y="36" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="700">experimental.chat.messages</text>
-    <text x="20" y="62" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Monitors message prefix chain</text>
-    <text x="20" y="82" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Calculates rolling SHA-256 history hashes</text>
+    <rect width="338" height="96" rx="10" fill="#151b27" stroke="#334155" stroke-width="1.5" />
+    <text x="18" y="36" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="700">experimental.chat.messages</text>
+    <text x="18" y="62" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Monitors message prefix chain</text>
+    <text x="18" y="82" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Calculates rolling SHA-256 history hashes</text>
   </g>
 
   <!-- Card 3: Compacting Hook -->
   <g transform="translate(48, 346)" filter="url(#cardShadow)">
-    <rect width="330" height="96" rx="10" fill="#151b27" stroke="#334155" stroke-width="1.5" />
-    <text x="20" y="36" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="700">experimental.session.compacting</text>
-    <text x="20" y="62" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Guards compaction lifecycle</text>
-    <text x="20" y="82" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Disables prune; steers to flash at temp 0</text>
+    <rect width="338" height="96" rx="10" fill="#151b27" stroke="#334155" stroke-width="1.5" />
+    <text x="18" y="36" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14.5" font-weight="700">experimental.session.compacting</text>
+    <text x="18" y="62" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Guards compaction lifecycle</text>
+    <text x="18" y="82" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Disables prune; steers to flash at temp 0</text>
   </g>
 
   <!-- Card 4: Event Hook -->
   <g transform="translate(48, 470)" filter="url(#cardShadow)">
-    <rect width="330" height="96" rx="10" fill="#151b27" stroke="#334155" stroke-width="1.5" />
-    <text x="20" y="36" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="700">event (assistant message)</text>
-    <text x="20" y="62" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Tracks real token telemetry</text>
-    <text x="20" y="82" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Extracts cache.read, miss input, and cost</text>
+    <rect width="338" height="96" rx="10" fill="#151b27" stroke="#334155" stroke-width="1.5" />
+    <text x="18" y="36" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="700">event (assistant message)</text>
+    <text x="18" y="62" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Tracks real token telemetry</text>
+    <text x="18" y="82" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Extracts cache.read, miss input, and cost</text>
   </g>
 
   <!-- Card 5: Warm-up Command -->
   <g transform="translate(48, 594)" filter="url(#cardShadow)">
-    <rect width="330" height="96" rx="10" fill="#151b27" stroke="#334155" stroke-width="1.5" />
-    <text x="20" y="36" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="700">/cache-warm (agent command)</text>
-    <text x="20" y="62" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Pre-warms baseline prompt prefix</text>
-    <text x="20" y="82" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Replays env &amp; skills at temp 0 before turn 1</text>
+    <rect width="338" height="96" rx="10" fill="#151b27" stroke="#334155" stroke-width="1.5" />
+    <text x="18" y="36" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="700">/cache-warm (agent command)</text>
+    <text x="18" y="62" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="500">Pre-warms baseline prompt prefix</text>
+    <text x="18" y="82" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Replays env &amp; skills at temp 0 before turn 1</text>
   </g>
 
   <!-- Connectors Left to Middle -->
-  <path class="flow-stream" d="M 378 146 L 430 146" stroke="#8b5cf6" stroke-width="2.5" />
-  <path class="flow-stream" d="M 378 270 L 430 270" stroke="#8b5cf6" stroke-width="2.5" />
-  <path class="flow-stream" d="M 378 394 L 430 394" stroke="#8b5cf6" stroke-width="2.5" />
-  <path class="flow-stream" d="M 378 518 L 430 518" stroke="#8b5cf6" stroke-width="2.5" />
-  <path class="flow-stream" d="M 378 642 L 430 642" stroke="#8b5cf6" stroke-width="2.5" />
+  <path class="flow-stream" d="M 386 146 L 430 146" stroke="#8b5cf6" stroke-width="2.5" />
+  <path class="flow-stream" d="M 386 270 L 430 270" stroke="#8b5cf6" stroke-width="2.5" />
+  <path class="flow-stream" d="M 386 394 L 430 394" stroke="#8b5cf6" stroke-width="2.5" />
+  <path class="flow-stream" d="M 386 518 L 430 518" stroke="#8b5cf6" stroke-width="2.5" />
+  <path class="flow-stream" d="M 386 642 L 430 642" stroke="#8b5cf6" stroke-width="2.5" />
 
   <!-- Middle Column: CacheSnipe Core Layers (x=430, w=410) -->
   <!-- Card 1: L0 + L0b + L0c -->
