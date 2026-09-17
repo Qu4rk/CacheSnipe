@@ -343,7 +343,7 @@ You can pass options into CacheSnipe through your OpenCode configuration by repl
 | `compactionPrompt` | `"context"` \| `"replace"` \| `"off"` | `"context"` | Compaction prompt handling mode. `"context"` injects static compaction guidelines. |
 | `notifications` | `boolean` | `false` | Sends native macOS desktop notifications on milestones (e.g. 1M cached tokens) and prefix breaks. |
 | `sessionTitle` | `boolean` | `false` | Appends current cache performance to the session title in the sidebar (for example: `[cache 96%]`). |
-| `warmup` | `boolean` | `false` | Records a `suggest /cache-warm` hint when a session resumes after 2+ hours idle. The plugin itself never fires network requests. |
+| `warmup` | `boolean` | `true` | Records a `suggest /cache-warm` hint when a session resumes after 2+ hours idle. The plugin itself never fires network requests. |
 | `statsDir` | `string` | `~/.local/share/opencode/deepseek-cache` | Directory where per-session JSON files and reports are saved. |
 | `retentionDays` | `number` | `30` | Number of days before old session telemetry records are pruned. |
 | `providers` | `string[]` | `[]` | Additional provider prefixes that should trigger CacheSnipe. |

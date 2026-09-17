@@ -50,7 +50,7 @@ const DEFAULT_OPTIONS: ResolvedOptions = {
   compactionPrompt: "context",
   notifications: false,
   sessionTitle: false,
-  warmup: false,
+  warmup: true,
 };
 
 function describeError(error: unknown): string {

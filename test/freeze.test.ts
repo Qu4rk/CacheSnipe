@@ -398,7 +398,7 @@ test("warmup hint: a stale resumed session suggests /cache-warm when warmup is o
 
     const off = tempContext();
     try {
-      const runOff = harness(off);
+      const runOff = harness(off, resolveOptions({ warmup: false }));
       await runOff({ sessionID: "ses_fresh" }, systemPrompt({ date: "Wed Sep 16 2026" }));
       const seen = off.registry.peek("ses_fresh");
       assert.ok(seen?.stats);
