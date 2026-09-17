@@ -224,6 +224,21 @@ The installer runs interactively by default:
 ./install.sh --stats-dir <d>  # Specify a custom directory for cache telemetry
 ```
 
+### Install via Your Agent
+
+Paste this prompt to your coding agent and it will install CacheSnipe for you:
+
+```text
+Install the CacheSnipe OpenCode plugin for me:
+
+1. Clone https://github.com/Qu4rk/CacheSnipe.git to ~/CacheSnipe (if that directory already exists, run `git pull` inside it instead of cloning).
+2. Check `node -v` is version 22 or higher; if not, stop and tell me.
+3. Run `./install.sh --yes` inside ~/CacheSnipe. Do not pass any other flags unless I ask.
+4. Do not edit my opencode.json by hand; let the installer patch it.
+5. Report exactly what the installer changed.
+6. Tell me to restart the OpenCode app so it loads the plugin, and that I should run /cache-stats after my next DeepSeek turn to confirm it is working.
+```
+
 ### Manual Configuration
 
 If you prefer to configure OpenCode manually, add the following to `~/.config/opencode/opencode.json` (or `opencode.jsonc`):
