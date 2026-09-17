@@ -37,6 +37,17 @@ Processing over 70 million tokens on advanced DeepSeek models across 380 request
 
 Without prefix locking, pushing 70.3 million input tokens through DeepSeek Pro would have cost over $30.00 (or over $10.50 even on Flash). With CacheSnipe locking the prefix, warm turns consistently achieved 95% to 99% KV cache hit rates at $0.0036 per million tokens, keeping the entire 380-request workload down to pocket change.
 
+### With and Without the Prefix Lock
+
+Two of my own API keys over similar 30-day windows of the same agentic coding workload. One runs behind CacheSnipe, the other does not:
+
+| | Tokens | Requests | Billed | Blended rate |
+|---|---|---|---|---|
+| Without CacheSnipe | 71,842,615 | 392 | $11.02 | ~$0.153 / 1M |
+| With CacheSnipe | 77,880,048 | 438 | $0.64 | ~$0.0082 / 1M |
+
+The uncached key pays essentially full Flash input price ($0.15/M) on nearly every token. At the cached blended rate, the 71.8M-token workload would have cost about $0.59 instead of $11.02 — roughly **18x cheaper per token, same work**.
+
 Honest framing: these numbers assume long multi-turn sessions on official DeepSeek keys. The first turn of every session is always cold, and each turn's genuinely new content is always billed at full price. See [Limits and Compatibility](#limits-and-compatibility).
 
 ---
