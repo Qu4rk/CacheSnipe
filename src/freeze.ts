@@ -6,7 +6,7 @@ import type { SessionRegistry } from "./registry.js";
 import type { BlockHashes, ResolvedOptions } from "./types.js";
 
 /**
- * P0 / P0b — system prompt freeze.
+  * L0 / L0b — system prompt freeze.
  *
  * opencode rebuilds the system prompt on every request. Two parts of it move
  * without the user doing anything:
@@ -32,6 +32,8 @@ import type { BlockHashes, ResolvedOptions } from "./types.js";
  */
 
 export const DATE_LINE = /Today's date: ?[^\n]*/;
+export const WORKING_LINE = /Working directory: ?[^\n]*/;
+export const ROOT_LINE = /Workspace root folder: ?[^\n]*/;
 
 /**
  * How much of each session-start block is persisted for line-level attribution.
@@ -67,7 +69,93 @@ export function parseDateLine(text: string): string | undefined {
 
 /** The env block with its date line replaced, so the hash survives midnight. */
 export function normalizeEnv(text: string): string {
-  return text.replace(DATE_LINE, "Today's date: <frozen>");
+  return text
+    .replace(DATE_LINE, "Today's date: <frozen>")
+    .replace(WORKING_LINE, "Working directory: <frozen>")
+    .replace(ROOT_LINE, "Workspace root folder: <frozen>");
+}
+
+export type FrozenCwd = { working: string; root: string };
+
+export function parseCwd(text: string): FrozenCwd | undefined {
+  const working = WORKING_LINE.exec(text)?.[0]?.replace(/^Working directory: ?/, "").trim();
+  const root = ROOT_LINE.exec(text)?.[0]?.replace(/^Workspace root folder: ?/, "").trim();
+  if (!working || !root) return undefined;
+  return { working, root };
+}
+
+/** Rewrites every cwd line in place; returns how many elements changed. */
+export function applyFrozenCwd(system: string[], frozen: FrozenCwd): number {
+  let changed = 0;
+  for (let index = 0; index < system.length; index += 1) {
+    const text = system[index];
+    if (typeof text !== "string") continue;
+    let next = text;
+    if (WORKING_LINE.test(next)) {
+      const current = WORKING_LINE.exec(next)?.[0]?.replace(/^Working directory: ?/, "").trim();
+      if (current !== undefined && current !== frozen.working) {
+        next = next.replace(WORKING_LINE, `Working directory: ${frozen.working}`);
+      }
+    }
+    if (ROOT_LINE.test(next)) {
+      const current = ROOT_LINE.exec(next)?.[0]?.replace(/^Workspace root folder: ?/, "").trim();
+      if (current !== undefined && current !== frozen.root) {
+        next = next.replace(ROOT_LINE, `Workspace root folder: ${frozen.root}`);
+      }
+    }
+    if (next !== text) {
+      system[index] = next;
+      changed += 1;
+    }
+  }
+  return changed;
+}
+
+/**
+ * Sorts `<skill>` entries by `<name>` so directory-scan reorderings collapse to
+ * identical bytes. No-op unless the block shape matches. Returns the new text.
+ */
+export function canonicalizeSkillsBlock(text: string): string {
+  if (!text.includes("<available_skills>") || !text.includes("<skill>")) return text;
+  const chunks = text.match(/<skill>[\s\S]*?<\/skill>/g);
+  if (!chunks || chunks.length < 2) return text;
+  const keyOf = (chunk: string): string => /<name>([\s\S]*?)<\/name>/.exec(chunk)?.[1]?.trim() ?? chunk;
+  const sorted = [...chunks].sort((a, b) => (keyOf(a) < keyOf(b) ? -1 : keyOf(a) > keyOf(b) ? 1 : 0));
+  if (sorted.every((chunk, i) => chunk === chunks[i])) return text;
+  let cursor = 0;
+  return text.replace(/<skill>[\s\S]*?<\/skill>/g, () => sorted[cursor++] ?? "");
+}
+
+/**
+ * Sorts `<server ...>...</server>` entries by name so MCP connect-order jitter
+ * collapses to identical bytes. No-op unless the shape matches.
+ */
+export function canonicalizeMcpBlock(text: string): string {
+  if (!text.includes("<mcp_instructions>") || !text.includes("</server>")) return text;
+  const chunks = text.match(/<server[\s\S]*?<\/server>/g);
+  if (!chunks || chunks.length < 2) return text;
+  const keyOf = (chunk: string): string =>
+    /name="([^"]+)"/.exec(chunk)?.[1]?.trim() ?? /<name>([\s\S]*?)<\/name>/.exec(chunk)?.[1]?.trim() ?? chunk;
+  const sorted = [...chunks].sort((a, b) => (keyOf(a) < keyOf(b) ? -1 : keyOf(a) > keyOf(b) ? 1 : 0));
+  if (sorted.every((chunk, i) => chunk === chunks[i])) return text;
+  let cursor = 0;
+  return text.replace(/<server[\s\S]*?<\/server>/g, () => sorted[cursor++] ?? "");
+}
+
+/** Canonicalizes skills/MCP ordering in place; returns how many elements changed. */
+export function canonicalizeSystem(system: string[]): number {
+  let changed = 0;
+  for (let index = 0; index < system.length; index += 1) {
+    const text = system[index];
+    if (typeof text !== "string") continue;
+    let next = canonicalizeSkillsBlock(text);
+    next = canonicalizeMcpBlock(next);
+    if (next !== text) {
+      system[index] = next;
+      changed += 1;
+    }
+  }
+  return changed;
 }
 
 export function scanBlocks(system: readonly string[]): BlockHit[] {
@@ -138,7 +226,7 @@ const BLOCK_HINTS: Record<string, string> = {
   skills: "a skill was added/removed/edited, or a skills directory (possibly a symlinked one) disappeared",
   mcp: "an MCP server changed its instructions or failed to connect",
   references: "project references changed",
-  env: "the environment block changed (working directory, or the model id in the prompt)",
+  env: "the environment block changed (model id or platform string; date/cwd are frozen separately)",
   date: "the date line changed",
 };
 
@@ -179,7 +267,30 @@ export function createSystemTransform(deps: FreezeDeps): NonNullable<Hooks["expe
     const session = registry.observe(sessionID);
     registry.activate(session, identity);
 
-    // P0 — freeze the date. A persisted value wins so a resumed session keeps
+    // Stale-resume hint (warmup:true only): the disk cache is best-effort and
+    // expires in hours, so a session idle that long is likely evicted. Surfacing
+    // it as a note puts it in /cache-stats where the agent already looks, and
+    // the agent can then run /cache-warm on its own. Fixed text so it dedupes.
+    if (
+      options.warmup &&
+      session.stats &&
+      session.stats.turns > 0 &&
+      Date.now() - (session.stats.updatedAt ?? 0) > 2 * 60 * 60 * 1000
+    ) {
+      registry.note(
+        session,
+        "cache likely evicted after an idle gap (disk cache expires in hours): suggest /cache-warm before the next large turn",
+      );
+    }
+
+    // Canonicalize tool ordering first so the baseline is the stable form.
+    // Directory-scan reorderings then collapse to identical bytes.
+    const canonicalized = canonicalizeSystem(system);
+    if (canonicalized > 0) {
+      logger.debug("canonicalized skills/mcp block ordering", { sessionID, blocks: canonicalized });
+    }
+
+    // L0 — freeze the date. A persisted value wins so a resumed session keeps
     // the cache chain it already paid for.
     if (!session.frozenDate) {
       session.frozenDate = session.stats?.frozenDate || observedDate;
@@ -194,7 +305,22 @@ export function createSystemTransform(deps: FreezeDeps): NonNullable<Hooks["expe
     }
     applyFrozenDate(system, session.frozenDate);
 
-    // P0b — hash the blocks *after* freezing so the baseline matches what we send.
+    // L0c — freeze the working directories. Same pattern as the date: capture on
+    // first sight, persist on disk, rewrite drift on every turn (including
+    // resumes and app restarts) so the prefix stays byte-identical. Rewritten
+    // lines never count as breaks because hashing happens after freezing and
+    // normalizeEnv ignores cwd lines.
+    const observedCwd = envHit ? parseCwd(envHit.text) : undefined;
+    if (observedCwd) {
+      if (!session.frozenCwd) {
+        session.frozenCwd = session.stats?.frozenCwd ?? observedCwd;
+        if (session.stats) session.stats.frozenCwd = session.frozenCwd;
+        logger.info("cwd frozen", { sessionID, ...session.frozenCwd });
+      }
+      applyFrozenCwd(system, session.frozenCwd);
+    }
+
+    // L0b — hash the blocks *after* freezing so the baseline matches what we send.
     const blockHits = scanBlocks(system);
     const nextHashes = hashBlocks(blockHits, session.frozenDate);
     const hadBaseline = Object.keys(session.blocks).length > 0;
@@ -202,7 +328,7 @@ export function createSystemTransform(deps: FreezeDeps): NonNullable<Hooks["expe
     if (!hadBaseline) {
       session.blocks = nextHashes;
       session.promptHash = hashText(system.join("\n----\n"));
-      // Attribution is the point of P0b, and without the baseline text a drift can
+      // Attribution is the point of L0b, and without the baseline text a drift can
       // only be named, not located. A bounded copy is therefore persisted for every
       // session — a restart mid-session (which is exactly when the prompt blocks can
       // move) would otherwise leave the next drift unlocatable, and one such drift

@@ -6,7 +6,7 @@ import { warmHitRate } from "./render.js";
 import { MAX_HISTORY_POINTS, ZERO_USAGE, type ResolvedOptions, type Usage, type UsageFields } from "./types.js";
 
 /**
- * P1 — telemetry.
+  * L1 — telemetry.
  *
  * Assistant messages carry full accounting (`tokens.cache.read/write`, miss
  * `input`, `reasoning`, `output`, `cost`), and opencode re-emits

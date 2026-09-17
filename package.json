@@ -21,6 +21,7 @@
     "verify": "npm run build && node scripts/verify.mjs",
     "breaks": "node scripts/breaks.mjs",
     "probe": "node scripts/cache-probe.mjs",
+    "warmup": "node scripts/warmup.mjs",
     "wirecheck": "npm run build && node scripts/wire-check.mjs",
     "patch-config": "node scripts/patch-config.mjs",
     "install-plugin": "./install.sh --yes"

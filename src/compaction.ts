@@ -5,7 +5,7 @@ import type { ConfigSnapshot } from "./render.js";
 import type { ResolvedOptions } from "./types.js";
 
 /**
- * P3 — deterministic compaction.
+   * L3 — deterministic compaction.
  *
  * opencode compacts through a dedicated `compaction` agent, so the model and
  * temperature come from config:

@@ -4,11 +4,15 @@ import { join } from "node:path";
 import test from "node:test";
 import type { Hooks } from "@opencode-ai/plugin";
 import {
+  applyFrozenCwd,
   applyFrozenDate,
+  canonicalizeMcpBlock,
+  canonicalizeSkillsBlock,
   changedBlocks,
   firstDifferingLine,
   hashBlocks,
   normalizeEnv,
+  parseCwd,
   parseDateLine,
   scanBlocks,
 } from "../src/freeze.js";
@@ -60,7 +64,7 @@ test("pure helpers: date line parsing, normalization and diffs", () => {
   assert.ok(applied === 1 && system[0]?.includes("Wed Sep 16 2026"));
 });
 
-test("P0: freezes the date on first sight and rewrites drift on later days", async () => {
+test("L0: freezes the date on first sight and rewrites drift on later days", async () => {
   const ctx = tempContext();
   try {
     const run = harness(ctx);
@@ -79,7 +83,7 @@ test("P0: freezes the date on first sight and rewrites drift on later days", asy
   }
 });
 
-test("P0: a resumed session reuses the persisted frozen date instead of re-busting", async () => {
+test("L0: a resumed session reuses the persisted frozen date instead of re-busting", async () => {
   const first = tempContext();
   try {
     const run = harness(first);
@@ -97,7 +101,7 @@ test("P0: a resumed session reuses the persisted frozen date instead of re-busti
   }
 });
 
-test("P0b: skills drift is counted once and attributed to the skills block", async () => {
+test("L0b: skills drift is counted once and attributed to the skills block", async () => {
   const ctx = tempContext();
   try {
     const run = harness(ctx);
@@ -119,7 +123,7 @@ test("P0b: skills drift is counted once and attributed to the skills block", asy
   }
 });
 
-test("P0b: drift names the first differing line even without strictFreeze", async () => {
+test("L0b: drift names the first differing line even without strictFreeze", async () => {
   const ctx = tempContext();
   try {
     // No strictFreeze: the baseline text is held in memory rather than persisted.
@@ -144,7 +148,7 @@ test("P0b: drift names the first differing line even without strictFreeze", asyn
   }
 });
 
-test("P0b: a restart mid-session still locates the drift by line", async () => {
+test("L0b: a restart mid-session still locates the drift by line", async () => {
   const first = tempContext();
   try {
     const run = harness(first);
@@ -218,7 +222,7 @@ test("strictFreeze replays session-start blocks after a restart, so the prefix s
   }
 });
 
-test("P0b: mcp instructions appearing mid-session are attributed to the mcp block", async () => {
+test("L0b: mcp instructions appearing mid-session are attributed to the mcp block", async () => {
   const ctx = tempContext();
   try {
     const run = harness(ctx);
@@ -290,4 +294,122 @@ test("block hashes isolate the date from the rest of the env block", () => {
   assert.equal(hashesA.env, hashesB.env, "env hash ignores the date line");
   assert.notEqual(hashesA.date, hashesB.date);
   assert.deepEqual(changedBlocks(hashesA, hashesB), ["date"]);
+});
+
+test("L0c: freezes cwd on first sight and rewrites drift without a break", async () => {
+  const ctx = tempContext();
+  try {
+    const run = harness(ctx);
+    const first = await run({ sessionID: "ses_cwd" }, systemPrompt({ date: "Wed Sep 16 2026", cwd: "/tmp/project" }));
+    assert.ok(first[0]?.includes("Working directory: /tmp/project"));
+
+    const moved = await run({ sessionID: "ses_cwd" }, systemPrompt({ date: "Wed Sep 16 2026", cwd: "/tmp/other" }));
+    assert.ok(moved[0]?.includes("Working directory: /tmp/project"), "cwd must stay frozen");
+    assert.ok(moved[0]?.includes("Workspace root folder: /tmp/project"));
+    const stats = statsOf(ctx, "ses_cwd");
+    assert.equal(stats.systemPromptBreaks, 0, "a rewritten cwd must not count as a prompt break");
+    assert.equal(stats.frozenCwd.working, "/tmp/project");
+    assert.equal(stats.frozenCwd.root, "/tmp/project");
+  } finally {
+    ctx.cleanup();
+  }
+});
+
+test("L0c: a resumed session reuses the persisted frozen cwd", async () => {
+  const first = tempContext();
+  try {
+    const run = harness(first);
+    await run({ sessionID: "ses_cwd_resume" }, systemPrompt({ date: "Wed Sep 16 2026", cwd: "/tmp/project" }));
+    first.store.flushAll();
+
+    const second = tempContext("cachesnipe", first.dir);
+    const runAgain = harness(second);
+    const after = await runAgain(
+      { sessionID: "ses_cwd_resume" },
+      systemPrompt({ date: "Wed Sep 16 2026", cwd: "/tmp/other" }),
+    );
+    assert.ok(after[0]?.includes("Working directory: /tmp/project"), "resumed session keeps frozen cwd");
+  } finally {
+    first.cleanup();
+  }
+});
+
+test("pure helpers: cwd parsing, normalization and canonical ordering", () => {
+  const env = " Working directory: /tmp/a\n Workspace root folder: /tmp/a\n Today's date: Wed Sep 16 2026\n";
+  assert.deepEqual(parseCwd(env), { working: "/tmp/a", root: "/tmp/a" });
+  assert.ok(!normalizeEnv(env).includes("/tmp/a"), "env hash must ignore cwd lines");
+
+  const system = ["x", "y"];
+  assert.equal(applyFrozenCwd(system, { working: "/tmp/a", root: "/tmp/a" }), 0);
+
+  const reordered = [
+    "Skills provide specialized instructions and workflows for specific tasks.",
+    "Use the skill tool to load a skill when a task matches its description.",
+    "<available_skills>",
+    " <skill>",
+    "  <name>zebra</name>",
+    " </skill>",
+    " <skill>",
+    "  <name>apple</name>",
+    " </skill>",
+    "</available_skills>",
+  ].join("\n");
+  const canonical = canonicalizeSkillsBlock(reordered);
+  assert.ok(canonical.indexOf("<name>apple</name>") < canonical.indexOf("<name>zebra</name>"));
+
+  const mcp = [
+    "<mcp_instructions>",
+    ' <server name="zebra">',
+    "  z",
+    " </server>",
+    ' <server name="apple">',
+    "  a",
+    " </server>",
+    "</mcp_instructions>",
+  ].join("\n");
+  const mcpCanonical = canonicalizeMcpBlock(mcp);
+  assert.ok(mcpCanonical.indexOf('name="apple"') < mcpCanonical.indexOf('name="zebra"'));
+});
+
+test("L0c: reordered skills collapse to identical bytes with no break", async () => {
+  const ctx = tempContext();
+  try {
+    const run = harness(ctx);
+    const forward = await run({ sessionID: "ses_order" }, systemPrompt({ date: "Wed Sep 16 2026", skills: ["apple", "zebra"] }));
+    const reversed = await run({ sessionID: "ses_order" }, systemPrompt({ date: "Wed Sep 16 2026", skills: ["zebra", "apple"] }));
+    assert.equal(reversed[1], forward[1], "skill reorder must canonicalize to identical output");
+    assert.equal(statsOf(ctx, "ses_order").systemPromptBreaks, 0);
+  } finally {
+    ctx.cleanup();
+  }
+});
+
+test("warmup hint: a stale resumed session suggests /cache-warm when warmup is on", async () => {
+  const ctx = tempContext();
+  try {
+    const run = harness(ctx, resolveOptions({ warmup: true }));
+    await run({ sessionID: "ses_stale" }, systemPrompt({ date: "Wed Sep 16 2026" }));
+    const observed = ctx.registry.peek("ses_stale");
+    assert.ok(observed?.stats);
+    observed.stats.turns = 5;
+    observed.stats.updatedAt = Date.now() - 3 * 60 * 60 * 1000;
+    await run({ sessionID: "ses_stale" }, systemPrompt({ date: "Wed Sep 16 2026" }));
+    assert.ok(statsOf(ctx, "ses_stale").notes.some((note: string) => note.includes("/cache-warm")));
+
+    const off = tempContext();
+    try {
+      const runOff = harness(off);
+      await runOff({ sessionID: "ses_fresh" }, systemPrompt({ date: "Wed Sep 16 2026" }));
+      const seen = off.registry.peek("ses_fresh");
+      assert.ok(seen?.stats);
+      seen.stats.turns = 5;
+      seen.stats.updatedAt = Date.now() - 3 * 60 * 60 * 1000;
+      await runOff({ sessionID: "ses_fresh" }, systemPrompt({ date: "Wed Sep 16 2026" }));
+      assert.ok(!statsOf(off, "ses_fresh").notes.some((note: string) => note.includes("/cache-warm")));
+    } finally {
+      off.cleanup();
+    }
+  } finally {
+    ctx.cleanup();
+  }
 });

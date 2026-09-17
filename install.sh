@@ -18,7 +18,7 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="${HOME}/.config/opencode"
 CONFIG_FILES=("${CONFIG_DIR}/opencode.json" "${CONFIG_DIR}/opencode.jsonc")
-COMMAND_FILES=(cache-stats.md cache-graph.md cache-reset.md)
+COMMAND_FILES=(cache-stats.md cache-graph.md cache-reset.md cache-warm.md)
 STATS_DIR="${HOME}/.local/share/opencode/deepseek-cache"
 
 DRY_RUN=0
@@ -105,7 +105,12 @@ if [ "${INSTALL_COMMANDS}" -eq 1 ]; then
       say "backed up ${dst} -> ${backup}"
     fi
     cp "${src}" "${dst}"
-    say "ok    installed ${dst}"
+    if [ "${name}" = "cache-warm.md" ]; then
+      sed -i.bak "s#__CACHESNIPE_REPO__#${REPO_DIR}#g" "${dst}" && rm -f "${dst}.bak"
+      say "ok    installed ${dst} (repo path stamped)"
+    else
+      say "ok    installed ${dst}"
+    fi
   done
 fi
 

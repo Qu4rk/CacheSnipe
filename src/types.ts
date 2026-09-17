@@ -76,11 +76,16 @@ export type SessionStats = {
   modelID: string;
   /** Session-start date, persisted so a resumed session keeps its cache chain. */
   frozenDate: string;
+  /**
+   * Session-start working directories, persisted so a resumed session or a
+   * restarted app keeps its cache chain. Rewritten on every turn like the date.
+   */
+  frozenCwd?: { working: string; root: string };
   /** Raw session-start blocks, only persisted when strictFreeze is enabled. */
   frozenBlocks?: Record<string, string>;
   /**
    * Bounded session-start block text, persisted so a drift can be located by line
-   * even after a restart. Attribution is the point of P0b, and without this a
+   * even after a restart. Attribution is the point of L0b, and without this a
    * resumed session can only name the block, not the line that moved.
    */
   baselineBlocks?: Record<string, string>;
@@ -138,6 +143,12 @@ export type ResolvedOptions = {
   notifications: boolean;
   /** Append `[cache 96%]` to the session title (desktop-visible status line substitute). */
   sessionTitle: boolean;
+  /**
+   * Opt-in explicit cache warm-up. The plugin itself never fires network
+   * requests from hooks; when true it only logs the `npm run warmup` hint.
+   * The actual ping lives in `scripts/warmup.mjs`.
+   */
+  warmup: boolean;
 };
 
 export type VerdictKind = "first" | "extension" | "rewind" | "compaction" | "divergence";

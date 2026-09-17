@@ -5,7 +5,7 @@ import { hashText } from "./freeze.js";
 import type { ChainPoint, Verdict } from "./types.js";
 
 /**
- * P2 — message prefix guard.
+   * L2 — message prefix guard.
  *
  * DeepSeek bills by matching the longest identical *prefix*. The system prompt is
  * only part of that prefix: the tool definitions and the whole message history

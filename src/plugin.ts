@@ -19,11 +19,11 @@ import type { ResolvedOptions } from "./types.js";
  * Hooks used (all `experimental.*` ones are optional; telemetry works through
  * plain events, so an opencode build without them degrades instead of breaking):
  *
- *   config                                  P3 auditing: prune flag, compaction model/temp, small_model
- *   experimental.chat.system.transform      P0 date freeze, P0b prompt-block freeze/attribution
- *   experimental.chat.messages.transform    P2 prefix guard (rewind vs divergence)
- *   experimental.session.compacting         P3 deterministic compaction context
- *   event                                   P1 telemetry from assistant message accounting
+  *   config                                  L3 auditing: prune flag, compaction model/temp, small_model
+  *   experimental.chat.system.transform      L0 date freeze, L0b prompt-block freeze/attribution, L0c cwd freeze and order canonicalization
+  *   experimental.chat.messages.transform    L2 prefix guard (rewind vs divergence)
+  *   experimental.session.compacting         L3 deterministic compaction context
+  *   event                                   L1 telemetry from assistant message accounting
  *
  * Runtime note: the OpenCode Desktop app hosts the server inside an Electron
  * Node process (no Bun), so this file uses `node:*` builtins only and is loaded
@@ -50,6 +50,7 @@ const DEFAULT_OPTIONS: ResolvedOptions = {
   compactionPrompt: "context",
   notifications: false,
   sessionTitle: false,
+  warmup: false,
 };
 
 function describeError(error: unknown): string {
@@ -83,6 +84,7 @@ export function resolveOptions(raw?: PluginOptions): ResolvedOptions {
     compactionPrompt: mode === "replace" || mode === "off" || mode === "context" ? mode : DEFAULT_OPTIONS.compactionPrompt,
     notifications: bool(input["notifications"], DEFAULT_OPTIONS.notifications),
     sessionTitle: bool(input["sessionTitle"], DEFAULT_OPTIONS.sessionTitle),
+    warmup: bool(input["warmup"], DEFAULT_OPTIONS.warmup),
   };
 }
 
@@ -250,7 +252,7 @@ export const server: Plugin = async (input: PluginInput, rawOptions?: PluginOpti
         systemTransform: fired.system,
         messagesTransform: fired.messages,
         windowMs: diagnosticWindowMs,
-        note: "opencode builds without experimental.chat.* hooks degrade to telemetry-only (P1)",
+        note: "opencode builds without experimental.chat.* hooks degrade to telemetry-only (L1)",
       });
     }, diagnosticWindowMs);
     timer.unref?.();
@@ -378,11 +380,13 @@ export const server: Plugin = async (input: PluginInput, rawOptions?: PluginOpti
       retentionDays: options.retentionDays,
       providers: options.providers,
       models: options.models,
+      warmup: options.warmup,
     },
+    warmupHint: options.warmup ? "run `npm run warmup -- --session <id>` after start/resume to persist prefix units" : undefined,
     hooks: Object.keys(hooks),
     prunedSessions: removed,
     opencodeHooks:
-      "P1 telemetry needs only `event`; P0/P0b/P2/P3 need the experimental.chat.* hooks",
+      "L1 telemetry needs only `event`; L0/L0b/L0c/L2/L3 need the experimental.chat.* hooks",
   });
 
   return hooks;

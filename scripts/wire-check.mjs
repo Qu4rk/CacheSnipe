@@ -156,7 +156,7 @@ async function main() {
     detail: `${otherSession}.json absent`,
   }));
 
-  // -------------------------------------------------------------- act: P0 freeze
+  // -------------------------------------------------------------- act: L0 freeze
   section("date freeze (criterion 6)");
   const first = [promptWithDate("Mon Sep 14 2026")];
   await transform({ model: deepseekModel, sessionID: session }, { system: first });
@@ -173,8 +173,8 @@ async function main() {
     return { ok: stats?.frozenDate === "Mon Sep 14 2026", detail: `frozenDate=${stats?.frozenDate}` };
   });
 
-  // ---------------------------------------------------------- act: P0b block drift
-  section("block drift is attributed (P0b)");
+  // ---------------------------------------------------------- act: L0b block drift
+  section("block drift is attributed (L0b)");
   // A block present from the session's first prompt can be diffed line by line.
   await transform({ model: deepseekModel, sessionID: skillsSession }, { system: [promptWithDate("Mon Sep 14 2026"), withSkills(["commit"])] });
   await transform({ model: deepseekModel, sessionID: skillsSession }, { system: [promptWithDate("Mon Sep 14 2026"), withSkills(["commit", "deploy"])] });
@@ -194,7 +194,7 @@ async function main() {
     return { ok: stats?.systemPromptBreaks === 1 && note.includes("no baseline text"), detail: note };
   });
 
-  // ------------------------------------------------------------ act: P2 guard
+  // ------------------------------------------------------------ act: L2 guard
   section("prefix guard (criteria 2 and 4)");
   const chain1 = [message("m1", "user", "read the file"), message("m2", "assistant", "done")];
   const chain2 = [...chain1, message("m3", "user", "now edit it")];
@@ -223,7 +223,7 @@ async function main() {
     return { ok: note.includes("prefix break #1 at message 1"), detail: note || "no break note recorded" };
   });
 
-  // ------------------------------------------------------ act: P3 compaction
+  // ------------------------------------------------------ act: L3 compaction
   section("compaction (criterion 5)");
   const compactOutput = { prompt: "ORIGINAL", context: [] };
   await compacting({ sessionID: session }, compactOutput);
@@ -237,7 +237,7 @@ async function main() {
     return { ok, detail: line.trim().slice(-160) || "no compaction line" };
   });
 
-  // ------------------------------------------------------- act: P1 telemetry
+  // ------------------------------------------------------- act: L1 telemetry
   section("telemetry (criteria 2 and 7)");
   const turns = [
     { id: "a1", input: 5000, read: 0, output: 300, reasoning: 100, cost: 0.002 },

@@ -73,13 +73,15 @@ When I started digging into why my cache hit rates were dropping to zero in Open
 
 ### How CacheSnipe Solves This
 
-CacheSnipe hooks into OpenCode across five layers of the request lifecycle:
+CacheSnipe hooks into OpenCode across seven layers of the request lifecycle:
 
-- **P0 Date Freeze**: Captures the date line upon first sighting, writes it to persistent session storage on disk, and rewrites any future date changes back to the session-start date. When you resume a session days later, the original cache chain stays intact.
-- **P0b Block Hashing and Drift Attribution**: Computes SHA-256 hashes for `<env>`, `<available_skills>`, `<mcp_instructions>`, and `<available_references>`. If drift happens, CacheSnipe pinpoints the exact block and the first line that differed.
-- **P2 Prefix Guard**: Tracks the message history hash chain. It classifies requests into extensions (healthy), rewinds (`/undo` or retries, which remain valid prefixes), compactions, or genuine divergences.
-- **P3 Safe Compaction**: Enforces `"compaction": { "prune": false }` in OpenCode configuration and directs session compaction to `deepseek/deepseek-v4-flash` at temperature 0.
-- **P1 Live Telemetry and Reporting**: Records exact cache-read tokens, miss input, reasoning tokens, and dollar costs directly from assistant message events.
+- **L0 Date Freeze**: Captures the date line upon first sighting, writes it to persistent session storage on disk, and rewrites any future date changes back to the session-start date. When you resume a session days later, the original cache chain stays intact.
+- **L0b Block Hashing and Drift Attribution**: Computes SHA-256 hashes for `<env>`, `<available_skills>`, `<mcp_instructions>`, and `<available_references>`. If drift happens, CacheSnipe pinpoints the exact block and the first line that differed.
+- **L0c CWD Freeze and Order Canonicalization**: Freezes `Working directory` and `Workspace root folder` to their session-start values and sorts `<skill>` and MCP `<server>` entries into canonical order, so directory moves, app restarts, and scan-order jitter no longer bust the prefix.
+- **L2 Prefix Guard**: Tracks the message history hash chain. It classifies requests into extensions (healthy), rewinds (`/undo` or retries, which remain valid prefixes), compactions, or genuine divergences.
+- **L3 Safe Compaction**: Enforces `"compaction": { "prune": false }` in OpenCode configuration and directs session compaction to `deepseek/deepseek-v4-flash` at temperature 0.
+- **L1 Live Telemetry and Reporting**: Records exact cache-read tokens, miss input, reasoning tokens, and dollar costs directly from assistant message events.
+- **L4 Cache Warm-up**: Replays the session's persisted baseline blocks through the DeepSeek API before the first large turn so it starts from persisted prefix units. The agent runs it itself via `/cache-warm`; a stale resume surfaces a hint in `/cache-stats`.
 
 <p align="center">
   <img src="assets/cache-flow.svg" alt="CacheSnipe Architecture and Hook Pipeline" width="100%" />
@@ -120,7 +122,7 @@ Official DeepSeek API keys maintain a dedicated, persistent cache namespace tied
 
 ## Plugin Commands
 
-CacheSnipe provides three custom commands that integrate directly into OpenCode chat. All three commands intentionally omit `agent` and `model` frontmatter so running them appends to your current session without starting a new cache chain.
+CacheSnipe provides four custom commands that integrate directly into OpenCode chat. All four commands intentionally omit `agent` and `model` frontmatter so running them appends to your current session without starting a new cache chain.
 
 ### 1. `/cache-stats`
 
@@ -177,6 +179,16 @@ Archives and clears active session statistics.
 
 Session JSON records are moved to a timestamped backup directory (`~/.local/share/opencode/deepseek-cache-archive-<timestamp>`) before removing active records. OpenCode's internal SQLite database (`opencode.db`) is never touched.
 
+### 4. `/cache-warm`
+
+Warms the DeepSeek disk cache for the session so the next large turn starts from persisted prefix units instead of paying cold. The agent runs the warm-up script itself (no session id needed — it defaults to the most-recent session) and reports the repeat-ping hit rate:
+
+```text
+/cache-warm
+```
+
+When the `warmup` plugin option is enabled, a session resumed after more than two hours of idle time also records a `suggest /cache-warm` hint in its notes, visible in `/cache-stats`, so the agent can offer warming on its own.
+
 ---
 
 ## Installation and Setup
@@ -199,7 +211,7 @@ cd CacheSnipe
 
 The installer runs interactively by default:
 1. Compiles TypeScript to `dist/src/plugin.js`.
-2. Copies `/cache-stats`, `/cache-graph`, and `/cache-reset` into `~/.config/opencode/commands/` (creating backups of existing files).
+2. Copies `/cache-stats`, `/cache-graph`, `/cache-reset`, and `/cache-warm` into `~/.config/opencode/commands/` (creating backups of existing files).
 3. Textually patches `~/.config/opencode/opencode.json` and `opencode.jsonc` to enable CacheSnipe, preserve comments, and configure safe compaction.
 
 ### Installer Flags
@@ -302,6 +314,7 @@ You can pass options into CacheSnipe through your OpenCode configuration by repl
       "compactionPrompt": "context",
       "notifications": false,
       "sessionTitle": true,
+      "warmup": true,
       "statsDir": "~/.local/share/opencode/deepseek-cache",
       "retentionDays": 30
     }
@@ -315,6 +328,7 @@ You can pass options into CacheSnipe through your OpenCode configuration by repl
 | `compactionPrompt` | `"context"` \| `"replace"` \| `"off"` | `"context"` | Compaction prompt handling mode. `"context"` injects static compaction guidelines. |
 | `notifications` | `boolean` | `false` | Sends native macOS desktop notifications on milestones (e.g. 1M cached tokens) and prefix breaks. |
 | `sessionTitle` | `boolean` | `false` | Appends current cache performance to the session title in the sidebar (for example: `[cache 96%]`). |
+| `warmup` | `boolean` | `false` | Records a `suggest /cache-warm` hint when a session resumes after 2+ hours idle. The plugin itself never fires network requests. |
 | `statsDir` | `string` | `~/.local/share/opencode/deepseek-cache` | Directory where per-session JSON files and reports are saved. |
 | `retentionDays` | `number` | `30` | Number of days before old session telemetry records are pruned. |
 | `providers` | `string[]` | `[]` | Additional provider prefixes that should trigger CacheSnipe. |

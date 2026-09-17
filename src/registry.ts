@@ -20,6 +20,8 @@ export type ObservedSession = {
   stats: SessionStats | undefined;
   /** Session-start date, reused across resumes so the cache chain survives. */
   frozenDate: string;
+  /** Session-start working directories, rewritten on every turn like the date. */
+  frozenCwd: { working: string; root: string } | undefined;
   /** Raw session-start blocks; persisted only when strictFreeze is on. */
   frozenBlocks: Record<string, string>;
   /**
@@ -108,6 +110,7 @@ export class SessionRegistry {
       active: false,
       stats: undefined,
       frozenDate: restored?.frozenDate ?? "",
+      frozenCwd: restored?.frozenCwd ?? undefined,
       frozenBlocks: restored?.frozenBlocks ?? {},
       baselineBlocks: { ...(restored?.baselineBlocks ?? restored?.frozenBlocks ?? {}) },
       blocks: restored?.blocks ?? {},
@@ -146,8 +149,9 @@ export class SessionRegistry {
     const existing = this.store.read(session.sessionID);
     const stats = existing ? mergeSessions(existing, freshStats(session.sessionID, session.directory, identity, now)) : freshStats(session.sessionID, session.directory, identity, now);
     if (existing) {
-      // Preserve everything learned in an earlier process (frozen date, chain, totals).
+      // Preserve everything learned in an earlier process (frozen date, cwd, chain, totals).
       stats.frozenDate = existing.frozenDate || session.frozenDate;
+      stats.frozenCwd = existing.frozenCwd ?? session.frozenCwd;
       stats.blocks = existing.blocks ?? {};
       stats.promptHash = existing.promptHash ?? "";
       stats.providerID = identity?.providerID || existing.providerID;
@@ -203,6 +207,7 @@ export class SessionRegistry {
     if (!stats) return;
     stats.chain = session.chain.slice(-MAX_CHAIN_PERSISTED).map((point) => point.hash);
     stats.frozenDate = session.frozenDate || stats.frozenDate;
+    if (session.frozenCwd) stats.frozenCwd = session.frozenCwd;
     stats.promptHash = session.promptHash || stats.promptHash;
     stats.blocks = { ...stats.blocks, ...session.blocks };
     if (session.frozenBlocks && Object.keys(session.frozenBlocks).length > 0) {

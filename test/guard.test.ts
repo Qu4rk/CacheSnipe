@@ -77,7 +77,7 @@ test("classify distinguishes extension, rewind, compaction and divergence", () =
   assert.ok(!isPrefixOf(["a", "z"], ["a", "b", "c"]));
 });
 
-test("P2: growing history counts as requests, an undo is a rewind, a rewrite is a break", async () => {
+test("L2: growing history counts as requests, an undo is a rewind, a rewrite is a break", async () => {
   const ctx = tempContext();
   try {
     const run = harness(ctx);
@@ -123,7 +123,7 @@ test("P2: growing history counts as requests, an undo is a rewind, a rewrite is 
   }
 });
 
-test("P2: sessions that are not DeepSeek are never counted", async () => {
+test("L2: sessions that are not DeepSeek are never counted", async () => {
   const ctx = tempContext();
   try {
     const hook = createMessagesTransform({ registry: ctx.registry, logger: ctx.logger });
@@ -139,7 +139,7 @@ test("P2: sessions that are not DeepSeek are never counted", async () => {
 });
 
 test("system prompts are irrelevant to the guard's chain", () => {
-  // Documents why P0/P0b and P2 must both exist: the message chain cannot see
+  // Documents why L0/L0b and L2 must both exist: the message chain cannot see
   // the system prompt at all.
   const prompts = systemPrompt({ date: "Wed Sep 16 2026" });
   assert.ok(prompts.length > 0);
