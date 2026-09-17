@@ -48,6 +48,10 @@ Two of my own API keys over similar 30-day windows of the same agentic coding wo
 
 The uncached key pays essentially full Flash input price ($0.15/M) on nearly every token. At the cached blended rate, the 71.8M-token workload would have cost about $0.59 instead of $11.02 — roughly **18x cheaper per token, same work**.
 
+<p align="center">
+  <img src="assets/deepseek-cost-without-cache.png" alt="DeepSeek Dashboard Without CacheSnipe: 71.8M tokens for $11.02 across 392 requests" width="850" />
+</p>
+
 Honest framing: these numbers assume long multi-turn sessions on official DeepSeek keys. The first turn of every session is always cold, and each turn's genuinely new content is always billed at full price. See [Limits and Compatibility](#limits-and-compatibility).
 
 ---
