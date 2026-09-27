@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -100,6 +100,65 @@ test("the rendered report names the session that was flushed, not a placeholder"
     assert.ok(summary.includes("prefix lost (turns 2+)"));
     assert.ok(summary.includes("trend (last 3 turns)"));
     assert.ok(readFileSync(paths.graph, "utf8").includes("turn     hit%"), "the graph follows the same session");
+  } finally {
+    ctx.cleanup();
+  }
+});
+
+test("targeted flush preserves other pending sessions (AC-01)", () => {
+  const ctx = tempContext();
+  try {
+    const a = sampleStats({ sessionID: "ses_a", cacheRead: 9_000, missInput: 2_000, turns: 2 });
+    const b = sampleStats({ sessionID: "ses_b", cacheRead: 27_000, missInput: 3_000, turns: 3 });
+    ctx.store.put(a);
+    ctx.store.put(b);
+    ctx.store.markDirty("ses_a");
+    ctx.store.markDirty("ses_b");
+
+    ctx.store.flush("ses_a");
+    ctx.store.flush();
+
+    const paths = storePaths(ctx.dir);
+    assert.ok(existsSync(join(paths.sessions, "ses_a.json")), "A persisted after targeted flush");
+    assert.ok(existsSync(join(paths.sessions, "ses_b.json")), "B preserved after targeted flush + drain");
+    const aOnDisk = JSON.parse(readFileSync(join(paths.sessions, "ses_a.json"), "utf8")) as SessionStats;
+    const bOnDisk = JSON.parse(readFileSync(join(paths.sessions, "ses_b.json"), "utf8")) as SessionStats;
+    assert.equal(aOnDisk.cacheRead, 9_000);
+    assert.equal(aOnDisk.turns, 2);
+    assert.equal(bOnDisk.cacheRead, 27_000);
+    assert.equal(bOnDisk.turns, 3);
+    assert.equal(bOnDisk.missInput, 3_000);
+  } finally {
+    ctx.cleanup();
+  }
+});
+
+test("failed write stays pending for retry without duplication (AC-03)", () => {
+  const ctx = tempContext();
+  try {
+    const paths = storePaths(ctx.dir);
+    const original = sampleStats({ sessionID: "ses_retry", cacheRead: 12_000, missInput: 2_000, turns: 2 });
+    const historyLen = original.history.length;
+    ctx.store.put(original);
+    ctx.store.markDirty(original.sessionID);
+
+    // Break the sessions directory so atomic writes fail deterministically.
+    rmSync(paths.sessions, { recursive: true, force: true });
+    writeFileSync(paths.sessions, "blocking file");
+    ctx.store.flush();
+    assert.ok(!existsSync(join(paths.sessions, "ses_retry.json")), "failed write must not create a record");
+
+    // Restore and retry via an explicit full flush (relies on the retained queue).
+    rmSync(paths.sessions, { force: true });
+    mkdirSync(paths.sessions, { recursive: true });
+    ctx.store.flush();
+
+    const retried = JSON.parse(readFileSync(join(paths.sessions, "ses_retry.json"), "utf8")) as SessionStats;
+    assert.equal(retried.cacheRead, 12_000);
+    assert.equal(retried.turns, 2);
+    assert.equal(retried.history.length, historyLen, "retry must not duplicate history");
+    const log = readFileSync(join(ctx.dir, "cachesnipe.log"), "utf8");
+    assert.ok(log.includes("could not write session stats"), "failure must log a warning");
   } finally {
     ctx.cleanup();
   }

@@ -182,16 +182,20 @@ export class StatsStore {
 
   flush(sessionID?: string): void {
     const ids = sessionID ? [sessionID] : [...this.pendingFlush];
-    this.pendingFlush.clear();
     let lastWritten: SessionStats | undefined;
     for (const id of ids) {
       const stats = this.inMemory.get(id);
-      if (!stats) continue;
+      if (!stats) {
+        this.pendingFlush.delete(id);
+        continue;
+      }
       try {
         stats.updatedAt = Date.now();
         writeAtomic(join(this.paths.sessions, `${id}.json`), `${JSON.stringify(stats, null, 2)}\n`);
+        this.pendingFlush.delete(id);
         lastWritten = stats;
       } catch (error) {
+        this.pendingFlush.add(id);
         this.logger.warn("could not write session stats", { sessionID: id, error: String(error) });
       }
     }

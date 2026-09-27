@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import type { Hooks } from "@opencode-ai/plugin";
@@ -84,6 +84,35 @@ test("turn accounting: cold turn 1, cached turns 2+, duplicates ignored", async 
     assert.deepEqual(milestones, [0.9], "one announcement for the highest threshold crossed");
     assert.deepEqual(stats.milestones, [0.5, 0.8, 0.9]);
     assert.ok(stats.notes.some((note: string) => note.includes("cold start")));
+  } finally {
+    ctx.cleanup();
+  }
+});
+
+test("session.idle for one session preserves another pending session (AC-02)", async () => {
+  const ctx = tempContext();
+  try {
+    const hook = createEventHandler({ registry: ctx.registry, logger: ctx.logger, options: resolveOptions({}) });
+    const emit = async (info: unknown): Promise<void> => {
+      await hook({ event: { type: "message.updated", properties: { info } } } as unknown as EventInput);
+    };
+    const SES_A = "ses_idle_a";
+    const SES_B = "ses_idle_b";
+    await emit(assistantMessage({ id: "a1", sessionID: SES_A, input: 1000, cacheRead: 9000 }));
+    await emit(assistantMessage({ id: "b1", sessionID: SES_B, input: 2000, cacheRead: 18000 }));
+    await hook({ event: { type: "session.idle", properties: { sessionID: SES_A } } } as unknown as EventInput);
+    // Drain remaining pending work explicitly (simulates the debounced flush).
+    ctx.store.flush();
+
+    const aFile = join(ctx.dir, "sessions", `${SES_A}.json`);
+    const bFile = join(ctx.dir, "sessions", `${SES_B}.json`);
+    assert.ok(existsSync(aFile), "idle session persisted");
+    assert.ok(existsSync(bFile), "other pending session preserved after idle flush");
+    const aStats = JSON.parse(readFileSync(aFile, "utf8"));
+    const bStats = JSON.parse(readFileSync(bFile, "utf8"));
+    assert.equal(aStats.cacheRead, 9000);
+    assert.equal(bStats.cacheRead, 18000);
+    assert.equal(bStats.missInput, 2000);
   } finally {
     ctx.cleanup();
   }
